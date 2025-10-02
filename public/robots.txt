@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Disallow admin interface and query params crawling noise
+Disallow: /admin
+Disallow: /*?*
+
+# Crawl-delay mainly respected by Bing-like bots; Google ignores
+Crawl-delay: 5
+
+# Sitemap location
+Sitemap: https://www.tradeark.in/sitemap.xml

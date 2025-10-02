@@ -1,0 +1,9 @@
+{
+  "routes": [
+    { "src": "/(.*)\\.(js|css|png|jpg|jpeg|gif|svg|webp|ico|txt|json|xml|wasm)", "headers": { "cache-control": "public, max-age=31536000, immutable" } },
+    { "src": "/api/latest-videos", "dest": "/api/latest-videos.ts" },
+    { "src": "/.*", "dest": "/index.html" }
+  ]
+}
+
+
