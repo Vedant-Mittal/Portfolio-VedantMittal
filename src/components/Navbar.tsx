@@ -47,8 +47,8 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Detect if we're on portfolio page
-  const isPortfolioPage = window.location.pathname === '/portfolio';
+  // Detect if we're on portfolio page (treat "/" as portfolio home too)
+  const isPortfolioPage = window.location.pathname === '/' || window.location.pathname === '/portfolio';
 
   // Different navigation items based on current page
   const homeNavItems = [

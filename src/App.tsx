@@ -3,9 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import Index from "./pages/Index";
-import ComingSoon from "./pages/ComingSoon";
+import { AuthProvider } from "@/hooks/useAuth";
 import CoursePage from "./pages/CoursePage";
 import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
@@ -17,10 +15,10 @@ import AdminPortfolio from "./pages/AdminPortfolio";
 const queryClient = new QueryClient();
 
 const RoutesWrapper = () => {
-  const { user } = useAuth();
   return (
     <Routes>
-      <Route path="/" element={user ? <Index /> : <ComingSoon />} />
+      {/* Set Portfolio as the home page */}
+      <Route path="/" element={<Portfolio />} />
       <Route path="/course/:courseId" element={<CoursePage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/admin/portfolio" element={<AdminPortfolio />} />
