@@ -176,7 +176,7 @@ export default function DesignsGallery({ items = sampleItems }: { items?: Galler
           <p className="text-muted-foreground max-w-2xl mx-auto text-sm md:text-base">A showcase of designs for digital platforms and social media.</p>
         </div>
 
-        {/* Slider Container */}
+        {/* Slider Container with touch swipe */}
         <div className="relative overflow-hidden">
           <div 
             className={cn(
@@ -185,6 +185,23 @@ export default function DesignsGallery({ items = sampleItems }: { items?: Galler
             )}
             style={{ 
               transform: `translateX(-${clampedCurrentIndex * (100 / visibleItems)}%)`
+            }}
+            onTouchStart={(e) => {
+              const touch = e.touches[0];
+              (e.currentTarget as any).__startX = touch.clientX;
+            }}
+            onTouchEnd={(e) => {
+              const startX = (e.currentTarget as any).__startX as number | undefined;
+              if (typeof startX !== 'number') return;
+              const endX = (e.changedTouches && e.changedTouches[0]?.clientX) || startX;
+              const deltaX = endX - startX;
+              const threshold = 40; // px
+              if (deltaX > threshold) {
+                goPrev();
+              } else if (deltaX < -threshold) {
+                goNext();
+              }
+              (e.currentTarget as any).__startX = undefined;
             }}
           >
             {normalizedItems.map((item) => (

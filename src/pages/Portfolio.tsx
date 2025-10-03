@@ -20,7 +20,7 @@ import {
   DialogContent,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ExternalLink, ChevronDown, Image as ImageIcon, Globe, PenTool, Sparkles, Calendar, Clock, Brain } from 'lucide-react';
+import { ExternalLink, ChevronDown, Image as ImageIcon, Globe, Briefcase, Mail, Sparkles, Calendar, Clock, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import PortfolioFooter from '@/components/PortfolioFooter';
 import axios from 'axios';
@@ -35,6 +35,14 @@ type GalleryItem = {
   title: string;
   type: 'single' | 'carousel';
   category: 'Finance' | 'Social' | 'Branding';
+};
+
+// Prefer a .webp version of an image URL when it's likely available.
+// If the URL ends with .png/.jpg/.jpeg (optionally with query params), swap the extension to .webp.
+// Otherwise return the original URL unchanged.
+const toWebpUrl = (url: string): string => {
+  if (!url) return url;
+  return url.replace(/\.(png|jpe?g)(\?.*)?$/i, (_m, _ext, qs) => `.webp${qs ?? ''}`);
 };
 
 // Helper function to convert Google Drive sharing links to direct image URLs
@@ -288,7 +296,7 @@ const Portfolio = () => {
       if (!paused) {
         carouselApi.scrollNext();
       }
-    }, 2500);
+    }, 5000);
     return () => clearInterval(id);
   }, [carouselApi, paused]);
 
@@ -351,6 +359,9 @@ const Portfolio = () => {
     if (!formData.get("subject")) {
       formData.append("subject", "New portfolio inquiry");
     }
+    // Set from/sender email so replies go to your mailbox
+    formData.append("from_name", "Vedant Mittal Portfolio");
+    formData.append("replyto", "contact@vedantmittal.com");
 
     try {
       const response = await fetch("https://api.web3forms.com/submit", {
@@ -413,15 +424,26 @@ const Portfolio = () => {
             className="h-full flex transition-transform duration-500 ease-out"
             style={{ transform: `translateX(-${idx * 100}%)` }}
           >
-            {images.map((src, i) => (
-              <img
-                key={`${src}-${i}`}
-                src={src}
-                alt={title}
-                className="h-full w-full object-contain bg-black flex-shrink-0"
-                onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder.svg'; }}
-              />
-            ))}
+            {images.map((originalSrc, i) => {
+              const preferredSrc = toWebpUrl(originalSrc);
+              return (
+                <img
+                  key={`${originalSrc}-${i}`}
+                  src={preferredSrc}
+                  alt={title}
+                  className="h-full w-full object-contain bg-black flex-shrink-0"
+                  onError={(e) => {
+                    const img = e.currentTarget as HTMLImageElement & { dataset: { triedFallback?: string } };
+                    if (!img.dataset.triedFallback) {
+                      img.dataset.triedFallback = 'true';
+                      img.src = originalSrc;
+                    } else {
+                      img.src = '/placeholder.svg';
+                    }
+                  }}
+                />
+              );
+            })}
           </div>
         </div>
       </div>
@@ -437,7 +459,7 @@ const Portfolio = () => {
       {/* Hero Section */}
       <section
         id="hero"
-        className="h-[70vh] flex items-center justify-center relative overflow-hidden"
+        className="h-[92svh] min-h-[92svh] md:h-[70vh] flex items-center justify-center relative overflow-hidden pt-20 md:pt-0"
         ref={heroRef}
         onMouseMove={(e) => {
           const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -448,13 +470,13 @@ const Portfolio = () => {
         onMouseLeave={() => setHeroParallax({ x: 0, y: 0 })}
       >
         {/* Preload image for better performance */}
-        <link rel="preload" as="image" href="/portfolio-hero-bg.png" />
+        <link rel="preload" as="image" href="/UniversalUpscaler_a97cb473-12d0-42bc-a06e-4faa40082f08.webp?v=1" />
         
         {/* Background Image */}
         <motion.div 
-          className="absolute inset-0 bg-center bg-cover bg-no-repeat blur-sm"
+          className="absolute inset-0 bg-[position:38%_50%] md:bg-center bg-cover bg-no-repeat blur-[2px] md:blur-sm"
           style={{ 
-            backgroundImage: `url(/portfolio-hero-bg.png)`,
+            backgroundImage: `url(/UniversalUpscaler_a97cb473-12d0-42bc-a06e-4faa40082f08.webp?v=1)`,
             y: bgTranslateY,
             scale: 1.06,
           }}
@@ -465,7 +487,7 @@ const Portfolio = () => {
         {/* Content */}
         <motion.div
           className="text-center px-6 max-w-4xl mx-auto relative z-10"
-          style={{ y: fgTranslateY, transform: `translate3d(${heroParallax.x * -8}px, ${heroParallax.y * -8}px, 0)` }}
+          style={{ y: fgTranslateY, transform: `translate3d(${heroParallax.x * -6}px, ${heroParallax.y * -6}px, 0)` }}
         >
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -473,14 +495,14 @@ const Portfolio = () => {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <div className="mb-3 flex justify-center">
-              <Badge variant="secondary" className="px-3 py-1.5 text-sm md:text-base">Portfolio</Badge>
+              <Badge variant="secondary" className="px-3 py-1.5 text-sm md:text-base">Open to Work</Badge>
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white">
-              Creative <span className="text-[#00E6E6]">Design</span> & Development Portfolio
+            <h1 className="text-3xl md:text-6xl font-bold mb-6 text-white">
+              Vedant Mittal | Portfolio
             </h1>
 
             <motion.p 
-              className="text-lg md:text-xl text-white/90 mb-8 max-w-3xl mx-auto"
+              className="text-base md:text-xl text-white/90 mb-8 max-w-3xl mx-auto"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3, duration: 0.8 }}
@@ -500,25 +522,25 @@ const Portfolio = () => {
                   const element = document.getElementById('websites');
                   if (element) element.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground w-full sm:w-auto"
                 data-testid="button-view-websites"
               >
-                <Globe className="mr-2 h-5 w-5" />
-                View Websites
+                <Briefcase className="mr-2 h-5 w-5" />
+                See My Work
               </Button>
               
               <Button
                 size="lg"
                 variant="outline"
                 onClick={() => {
-                  const element = document.getElementById('designs');
+                  const element = document.getElementById('contact');
                   if (element) element.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="border-primary text-primary hover:bg-primary/10"
+                className="border-primary text-primary hover:bg-primary/10 w-full sm:w-auto"
                 data-testid="button-view-designs"
               >
-                <PenTool className="mr-2 h-5 w-5" />
-                View Designs
+                <Mail className="mr-2 h-5 w-5" />
+                Get in Touch
               </Button>
             </motion.div>
             
@@ -784,7 +806,26 @@ const Portfolio = () => {
           <p className="text-muted-foreground max-w-2xl mx-auto mb-6">Designs where my creative vision guides artificial intelligence.</p>
           {aiDesigns.length ? (
             <div className="relative">
-              <div className="overflow-hidden">
+              <div
+                className="overflow-hidden"
+                onTouchStart={(e) => {
+                  const touch = e.touches[0];
+                  (e.currentTarget as any).__startX = touch.clientX;
+                }}
+                onTouchEnd={(e) => {
+                  const startX = (e.currentTarget as any).__startX as number | undefined;
+                  if (typeof startX !== 'number') return;
+                  const endX = (e.changedTouches && e.changedTouches[0]?.clientX) || startX;
+                  const deltaX = endX - startX;
+                  const threshold = 40; // px
+                  if (deltaX > threshold) {
+                    aiPrev();
+                  } else if (deltaX < -threshold) {
+                    aiNext();
+                  }
+                  (e.currentTarget as any).__startX = undefined;
+                }}
+              >
                 <div
                   className="flex transition-transform duration-500 ease-out"
                   style={{ transform: `translateX(-${aiClampedIndex * (100 / aiVisibleItems)}%)` }}
@@ -799,12 +840,26 @@ const Portfolio = () => {
                           <InnerAutoCarousel images={(item as any).images} title={item.title} />
                         ) : (
                           <div className="relative w-full" style={{ aspectRatio: '3 / 2' }}>
-                            <img
-                              src={(item as any).images?.[0] || (item as any).src || '/placeholder.svg'}
-                              alt={item.title}
-                              className="w-full h-full object-contain bg-black"
-                              onError={(e) => { e.currentTarget.src = '/placeholder.svg'; }}
-                            />
+                            {(() => {
+                              const original = (item as any).images?.[0] || (item as any).src || '/placeholder.svg';
+                              const preferred = toWebpUrl(original);
+                              return (
+                                <img
+                                  src={preferred}
+                                  alt={item.title}
+                                  className="w-full h-full object-contain bg-black"
+                                  onError={(e) => {
+                                    const img = e.currentTarget as HTMLImageElement & { dataset: { triedFallback?: string } };
+                                    if (!img.dataset.triedFallback) {
+                                      img.dataset.triedFallback = 'true';
+                                      img.src = original;
+                                    } else {
+                                      img.src = '/placeholder.svg';
+                                    }
+                                  }}
+                                />
+                              );
+                            })()}
                           </div>
                         )}
                       </div>
@@ -880,14 +935,11 @@ const Portfolio = () => {
               <h2 className="text-2xl md:text-3xl font-bold text-foreground">Interested in working together? Let’s connect.</h2>
               <p className="text-muted-foreground mt-3">I build clean, modern experiences with a focus on clarity and performance.</p>
               <div className="flex gap-3 mt-6">
-                <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer">
+                <a href="https://www.linkedin.com/in/mittalvedant/" target="_blank" rel="noopener noreferrer">
                   <Button variant="outline" className="glass-card">LinkedIn</Button>
                 </a>
-                <a href="https://x.com/tradeark" target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" className="glass-card">Twitter</Button>
-                </a>
-                <a href="https://www.youtube.com/@thevaluationschool" target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" className="glass-card">YouTube</Button>
+                <a href="https://www.instagram.com/vedantmittal21/" target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" className="glass-card">Instagram</Button>
                 </a>
               </div>
             </div>

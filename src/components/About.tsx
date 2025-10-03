@@ -28,15 +28,15 @@ const About = () => {
             <div className="p-8 text-center rounded-2xl border border-border bg-background">
               <div className="relative w-64 h-64 mx-auto mb-6 rounded-full overflow-hidden">
                 <img
-                  src={`/vedant-mittal.jpg?v=2`}
+                  src={`/vedant-mittal.webp?v=3`}
                   onError={(e) => {
                     const img = e.currentTarget as HTMLImageElement & { dataset: { triedWebp?: string; triedJpeg?: string; triedPng?: string; triedJpgAlt?: string } };
-                    if (!img.dataset.triedJpgAlt) {
-                      img.dataset.triedJpgAlt = 'true';
-                      img.src = '/vedant.jpg?v=2';
-                    } else if (!img.dataset.triedWebp) {
+                    if (!img.dataset.triedWebp) {
                       img.dataset.triedWebp = 'true';
                       img.src = '/vedant.webp?v=2';
+                    } else if (!img.dataset.triedJpgAlt) {
+                      img.dataset.triedJpgAlt = 'true';
+                      img.src = '/vedant.jpg?v=2';
                     } else if (!img.dataset.triedJpeg) {
                       img.dataset.triedJpeg = 'true';
                       img.src = '/vedant.jpeg?v=2';
@@ -51,6 +51,7 @@ const About = () => {
                   alt="Vedant Mittal"
                   loading="eager"
                   className="w-full h-full object-cover object-center"
+                  style={{ objectPosition: '50% 35%' }}
                 />
               </div>
               <h3 className="text-2xl font-bold text-primary mb-2">Vedant Mittal</h3>

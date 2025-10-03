@@ -95,7 +95,7 @@ const Navbar = () => {
             onClick={() => isPortfolioPage ? (window.location.href = toHref('/')) : scrollToSection('hero')}
           >
             <div className="flex items-center gap-2">
-              <img src="/logo.png?v=2" alt="Logo" className="h-7 w-7 md:h-8 md:w-8" />
+              <img src="/logo.webp?v=2" alt="Logo" className="h-7 w-7 md:h-8 md:w-8" />
               <span>Vedant Mittal</span>
             </div>
           </motion.div>

@@ -32,11 +32,11 @@ const PortfolioFooter = () => {
           <div>
             <h4 className="text-sm font-semibold text-foreground mb-3">Work Email</h4>
             <a
-              href="mailto:mittal.vedant01@gmail.com"
+              href="mailto:contact@vedantmittal.com"
               className="inline-flex items-center gap-2 text-primary hover:text-primary/80 bg-primary/5 border border-primary/20 rounded-md px-3 py-2"
             >
               <Mail className="h-4 w-4" />
-              mittal.vedant01@gmail.com
+              contact@vedantmittal.com
               <ArrowUpRight className="h-4 w-4" />
             </a>
           </div>
