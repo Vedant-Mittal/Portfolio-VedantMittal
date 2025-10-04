@@ -89,6 +89,8 @@ export const PortfolioEditor = () => {
   const [designs, setDesigns] = useState<EditableGalleryItem[]>([]);
   const [websites, setWebsites] = useState<EditableWebsiteItem[]>([]);
   const [aiDesigns, setAiDesigns] = useState<EditableGalleryItem[]>([]);
+  // Local object-URL previews for newly uploaded (not-yet-deployed) files
+  const [localPreviews, setLocalPreviews] = useState<Record<string, string>>({});
   const [dbStatus, setDbStatus] = useState<'checking' | 'ok' | 'error'>('checking');
   const [dbMessage, setDbMessage] = useState<string>('');
   const [storageStatus, setStorageStatus] = useState<'checking' | 'ok' | 'error'>('checking');
@@ -197,6 +199,36 @@ export const PortfolioEditor = () => {
     const json = await resp.json();
     return json.sitePath as string;
   };
+
+  // Preview helper component (prefers local object URL while deploy catches up)
+  function SmartPreview({ src, alt, className }: { src: string; alt: string; className?: string }) {
+    const normalized = ((): string => {
+      if (!src) return '/placeholder.svg';
+      const u = src.trim();
+      if (/^https?:\/\//i.test(u)) return u;
+      if (u.startsWith('/')) return u;
+      if (u.startsWith('public/')) return `/${u.replace(/^public\//, '')}`;
+      if (u.startsWith('media/')) return `/${u}`;
+      return u;
+    })();
+
+    const preferred = localPreviews[normalized] || normalized;
+    return (
+      <img
+        src={preferred}
+        alt={alt}
+        className={className}
+        onError={(e) => {
+          const img = e.currentTarget as HTMLImageElement;
+          if (img.src !== normalized) {
+            img.src = normalized; // fall back from object URL to site path
+          } else if (img.src !== '/placeholder.svg') {
+            img.src = '/placeholder.svg';
+          }
+        }}
+      />
+    );
+  }
 
   const load = async () => {
     setDbStatus('checking');
@@ -550,7 +582,7 @@ export const PortfolioEditor = () => {
         // Upload to GitHub via /api/upload-media
         const contentBase64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = () => resolve((reader.result as string).split(',')[1] ? (reader.result as string) : String(reader.result));
+          reader.onload = () => resolve(String(reader.result));
           reader.onerror = () => reject(reader.error);
           reader.readAsDataURL(file);
         });
@@ -562,6 +594,9 @@ export const PortfolioEditor = () => {
         if (!resp.ok) throw new Error('Upload failed');
         const json = await resp.json();
         const uploadedUrl = json.sitePath as string;
+        // Set temporary preview using object URL until deploy serves the file
+        const tempUrl = URL.createObjectURL(file);
+        setLocalPreviews((prev) => ({ ...prev, [uploadedUrl]: tempUrl, [uploadedUrl.replace(/^\//, '')]: tempUrl }));
         
         if (imageIndex !== undefined) {
           // Replace existing image
@@ -597,7 +632,7 @@ export const PortfolioEditor = () => {
           if (!isImage) continue;
           const contentBase64 = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = () => resolve((reader.result as string).split(',')[1] ? (reader.result as string) : String(reader.result));
+            reader.onload = () => resolve(String(reader.result));
             reader.onerror = () => reject(reader.error);
             reader.readAsDataURL(file);
           });
@@ -609,6 +644,8 @@ export const PortfolioEditor = () => {
           if (!resp.ok) throw new Error('Upload failed');
           const json = await resp.json();
           const uploadedUrl = json.sitePath as string;
+          const tempUrl = URL.createObjectURL(file);
+          setLocalPreviews((prev) => ({ ...prev, [uploadedUrl]: tempUrl, [uploadedUrl.replace(/^\//, '')]: tempUrl }));
           onAddImage(design.id, uploadedUrl);
         }
         toast({ title: 'Images uploaded', description: `${files.length} image(s) added to this design.` });
@@ -902,7 +939,7 @@ export const PortfolioEditor = () => {
                         if (!Number.isNaN(from) && from >= 0) handleReorderSingles('designs', from, idx);
                       }}
                     >
-                      <img src={d.images[0] || '/placeholder.svg'} alt={d.title || 'Design'} className="w-full h-36 object-cover" />
+                      <SmartPreview src={normalizeSitePath(d.images[0] || '/placeholder.svg')} alt={d.title || 'Design'} className="w-full h-36 object-cover" />
                       <div className="absolute top-1 left-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                         <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-black/40 text-white">
                           <GripVertical className="h-3.5 w-3.5" />
@@ -1007,7 +1044,7 @@ export const PortfolioEditor = () => {
                               if (!Number.isNaN(from) && from >= 0) handleReorderCarouselImages('designs', d.id, from, imageIdx);
                             }}
                           >
-                            <img src={url} alt={d.title || 'Carousel image'} className="w-full h-24 object-cover" />
+                            <SmartPreview src={normalizeSitePath(url)} alt={d.title || 'Carousel image'} className="w-full h-24 object-cover" />
                             <div className="absolute top-1 left-1 text-white bg-black/40 rounded h-6 w-6 flex items-center justify-center">
                               <GripVertical className="h-3.5 w-3.5" />
                             </div>
@@ -1080,7 +1117,7 @@ export const PortfolioEditor = () => {
                         if (!Number.isNaN(from) && from >= 0) handleReorderSingles('ai', from, idx);
                       }}
                     >
-                      <img src={d.images[0] || '/placeholder.svg'} alt={d.title || 'AI Design'} className="w-full h-36 object-cover" />
+                      <SmartPreview src={normalizeSitePath(d.images[0] || '/placeholder.svg')} alt={d.title || 'AI Design'} className="w-full h-36 object-cover" />
                       <div className="absolute top-1 left-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
                         <span className="inline-flex items-center justify-center h-6 w-6 rounded bg-black/40 text-white">
                           <GripVertical className="h-3.5 w-3.5" />
@@ -1179,7 +1216,7 @@ export const PortfolioEditor = () => {
                               if (!Number.isNaN(from) && from >= 0) handleReorderCarouselImages('ai', d.id, from, imageIdx);
                             }}
                           >
-                            <img src={url} alt={d.title || 'Carousel image'} className="w-full h-24 object-cover" />
+                            <SmartPreview src={normalizeSitePath(url)} alt={d.title || 'Carousel image'} className="w-full h-24 object-cover" />
                             <div className="absolute top-1 left-1 text-white bg-black/40 rounded h-6 w-6 flex items-center justify-center">
                               <GripVertical className="h-3.5 w-3.5" />
                             </div>
@@ -1264,29 +1301,7 @@ export const PortfolioEditor = () => {
                         {/* Screenshot Preview */}
                         {w.screenshot && (
                           <div className="w-full h-40 border rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                            <img 
-                              src={w.screenshot.includes('drive.google.com') ? 
-                                w.screenshot.replace('/file/d/', '/uc?export=view&id=').replace('/view?usp=sharing', '') :
-                                w.screenshot
-                              }
-                              alt={w.title || 'Website screenshot'} 
-                              className="max-w-full max-h-full object-contain"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const parent = e.currentTarget.parentElement;
-                                if (parent && !parent.querySelector('.error-message')) {
-                                  const errorDiv = document.createElement('div');
-                                  errorDiv.className = 'error-message text-red-500 text-sm text-center p-4';
-                                  errorDiv.textContent = '❌ Screenshot failed to load. Check URL or try uploading a new image.';
-                                  parent.appendChild(errorDiv);
-                                }
-                              }}
-                              onLoad={(e) => {
-                                const parent = e.currentTarget.parentElement;
-                                const errorMsg = parent?.querySelector('.error-message');
-                                if (errorMsg) errorMsg.remove();
-                              }}
-                            />
+                            <SmartPreview src={normalizeSitePath(w.screenshot.includes('drive.google.com') ? w.screenshot.replace('/file/d/', '/uc?export=view&id=').replace('/view?usp=sharing', '') : w.screenshot)} alt={w.title || 'Website screenshot'} className="max-w-full max-h-full object-contain" />
                           </div>
                         )}
                       </div>
@@ -1330,26 +1345,7 @@ export const PortfolioEditor = () => {
                       <div className="md:col-span-2">
                         <Label>Screenshot Preview</Label>
                         <div className="mt-2 w-full h-48 border rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                          <img 
-                            src={w.screenshot}
-                            alt={w.title || 'Website screenshot preview'} 
-                            className="max-w-full max-h-full object-contain"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const parent = e.currentTarget.parentElement;
-                              if (parent && !parent.querySelector('.error-message')) {
-                                const errorDiv = document.createElement('div');
-                                errorDiv.className = 'error-message text-red-500 text-sm text-center p-4';
-                                errorDiv.textContent = '❌ Screenshot failed to load. Check URL or try a different hosting service.';
-                                parent.appendChild(errorDiv);
-                              }
-                            }}
-                            onLoad={(e) => {
-                              const parent = e.currentTarget.parentElement;
-                              const errorMsg = parent?.querySelector('.error-message');
-                              if (errorMsg) errorMsg.remove();
-                            }}
-                          />
+                          <SmartPreview src={normalizeSitePath(w.screenshot)} alt={w.title || 'Website screenshot preview'} className="max-w-full max-h-full object-contain" />
                         </div>
                       </div>
                     )}
