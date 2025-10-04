@@ -111,6 +111,7 @@ export const PortfolioEditor = () => {
     | { kind: 'design-add'; designId: string }
     | { kind: 'ai-image'; designId: string; imageIndex: number }
     | { kind: 'ai-add'; designId: string }
+    | { kind: 'ai-create' }
     | { kind: 'website-screenshot'; websiteId: string };
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
   const [mediaPickerTarget, setMediaPickerTarget] = useState<MediaPickTarget | null>(null);
@@ -149,6 +150,8 @@ export const PortfolioEditor = () => {
       setAiDesigns(prev => prev.map(d => d.id === t.designId ? { ...d, images: d.images.map((img, idx) => idx === t.imageIndex ? path : img) } : d));
     } else if (t.kind === 'ai-add') {
       setAiDesigns(prev => prev.map(d => d.id === t.designId ? { ...d, images: [...d.images, path] } : d));
+    } else if (t.kind === 'ai-create') {
+      setAiDesigns(prev => [{ id: crypto.randomUUID(), type: 'single', title: 'Untitled', images: [path] }, ...prev]);
     } else if (t.kind === 'website-screenshot') {
       updateWebsite(t.websiteId, { screenshot: path });
     }
@@ -1086,17 +1089,11 @@ export const PortfolioEditor = () => {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="glass-card"
-                      onClick={() => setAiDesigns(prev => [{ id: crypto.randomUUID(), type: 'single', title: 'Untitled', images: [] }, ...prev])}
-                    >
-                      <Plus className="mr-2 h-4 w-4" /> Add Empty
+                    <Button type="button" variant="outline" className="glass-card" onClick={() => openMediaPicker({ kind: 'ai-create' })}>
+                      <ImageIcon className="mr-2 h-4 w-4" /> Pick from Repo
                     </Button>
-                    <Button type="button" variant="outline" className="glass-card" onClick={() => { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.multiple = true; input.onchange = async (e: any) => { const files = Array.from(e.target.files || []); if (!files.length) return; const createdId = crypto.randomUUID(); let images: string[] = []; for (const file of files) { const contentBase64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve((reader.result as string)); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); }); const resp = await fetch('/api/upload-media', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentBase64, name: file.name, folder: 'ai-designs' }) }); if (resp.ok) { const j = await resp.json(); images.push(j.sitePath); } }
-                    setAiDesigns(prev => [{ id: createdId, type: 'single', title: files[0]?.name?.replace(/\.[^.]+$/, '') || 'Untitled', images }, ...prev]); toast({ title: 'AI images uploaded', description: `${images.length} added.` }); }; input.click(); }}>
-                      <Upload className="h-4 w-4 mr-2" /> Upload
+                    <Button type="button" variant="outline" className="glass-card" onClick={() => { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.multiple = false; input.onchange = async (e: any) => { const file = (e.target.files || [])[0]; if (!file) return; const contentBase64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve((reader.result as string)); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); }); const resp = await fetch('/api/upload-media', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentBase64, name: file.name, folder: 'ai-designs' }) }); if (resp.ok) { const j = await resp.json(); const path = j.sitePath as string; const tempUrl = URL.createObjectURL(file); setLocalPreviews((prev) => ({ ...prev, [path]: tempUrl, [path.replace(/^\//, '')]: tempUrl })); setAiDesigns(prev => [{ id: crypto.randomUUID(), type: 'single', title: file.name.replace(/\.[^.]+$/, ''), images: [path] }, ...prev]); toast({ title: 'AI image uploaded' }); } }; input.click(); }}>
+                      <Upload className="h-4 w-4 mr-2" /> Upload Image
                     </Button>
                   </div>
                 </div>
