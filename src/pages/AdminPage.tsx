@@ -16,8 +16,7 @@ const AdminPage = () => {
     profile: profile?.role || 'No profile',
     isAdmin,
     isInstructor,
-    authLoading,
-    coursesLoading
+    authLoading
   });
 
   useEffect(() => {
@@ -64,53 +63,7 @@ const AdminPage = () => {
 
   // This page now hosts only the Portfolio Editor UI
 
-  const handleDeleteCourse = async (course: Course) => {
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete "${course.title}"?\n\n` +
-      'This will permanently delete the course and all its lectures. This action cannot be undone.'
-    );
-
-    if (!confirmDelete) return;
-
-    try {
-      // First delete all lectures associated with this course
-      const { error: lecturesError } = await supabase
-        .from('lectures')
-        .delete()
-        .eq('course_id', course.id);
-
-      if (lecturesError) throw lecturesError;
-
-      // Then delete the course
-      const { error: courseError } = await supabase
-        .from('courses')
-        .delete()
-        .eq('id', course.id);
-
-      if (courseError) throw courseError;
-
-      toast({
-        title: "Course deleted",
-        description: `"${course.title}" has been permanently deleted.`,
-      });
-
-      // Refresh the courses list
-      refetch();
-
-      // If the deleted course was selected, clear the selection
-      if (selectedCourse?.id === course.id) {
-        setSelectedCourse(null);
-        setActiveTab('courses');
-      }
-    } catch (error: any) {
-      console.error('Error deleting course:', error);
-      toast({
-        title: "Error deleting course",
-        description: error.message || 'An unexpected error occurred',
-        variant: "destructive",
-      });
-    }
-  };
+  // Removed all course management handlers – this page is portfolio-only now
 
   return (
     <div className="min-h-screen bg-background">
