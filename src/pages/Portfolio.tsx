@@ -146,8 +146,7 @@ const Portfolio = () => {
   const [aiDesigns, setAiDesigns] = useState<GalleryItem[]>([]);
   const [aiCurrentIndex, setAiCurrentIndex] = useState(0);
   const [aiVisibleItems, setAiVisibleItems] = useState(2);
-  const ASSET_VERSION = (import.meta as any)?.env?.VITE_ASSET_VERSION || '1';
-  const heroBgUrl = `/portfolio-hero-bg.webp?v=${ASSET_VERSION}`;
+  const heroBgUrl = '/UniversalUpscaler_a97cb473-12d0-42bc-a06e-4faa40082f08.webp?v=2';
   const [heroParallax, setHeroParallax] = useState({ x: 0, y: 0 });
   const heroRef = useRef<HTMLDivElement | null>(null);
 
