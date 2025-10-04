@@ -205,6 +205,16 @@ export const PortfolioEditor = () => {
 
   // Preview helper component (prefers local object URL while deploy catches up)
   function SmartPreview({ src, alt, className }: { src: string; alt: string; className?: string }) {
+    const nameOnly = (s: string) => /^(?:[A-Za-z0-9_-]+\.)?(?:[A-Za-z0-9_-]+)\.[a-zA-Z0-9]+$/.test(s) && !s.includes('/');
+
+    const resolveFromManifest = (base: string): string | null => {
+      // Prefer designs/ then any path that ends with the name
+      const preferred = `/media/designs/${base}`;
+      if (mediaFiles.includes(preferred)) return preferred;
+      const any = mediaFiles.find((p) => p.endsWith(`/${base}`));
+      return any || null;
+    };
+
     const normalized = ((): string => {
       if (!src) return '/placeholder.svg';
       const u = src.trim();
@@ -212,6 +222,11 @@ export const PortfolioEditor = () => {
       if (u.startsWith('/')) return u;
       if (u.startsWith('public/')) return `/${u.replace(/^public\//, '')}`;
       if (u.startsWith('media/')) return `/${u}`;
+      if (nameOnly(u)) {
+        const mapped = resolveFromManifest(u);
+        if (mapped) return mapped;
+        return `/media/designs/${u}`;
+      }
       return u;
     })();
 
