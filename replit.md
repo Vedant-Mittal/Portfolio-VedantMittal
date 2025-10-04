@@ -54,7 +54,37 @@ This is a React-based investment platform application called "Investel" built wi
 - **TypeScript**: Fully typed with proper configurations
 
 ## Recent Changes
-- **2025-10-01** (Latest):
+- **2025-10-04** (Latest):
+  - **Security Enhancement: Moved Credentials to Environment Variables**
+    - Removed all hardcoded API keys and credentials from source code
+    - Updated `src/integrations/supabase/client.ts` to use `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from environment variables
+    - Updated `src/pages/Portfolio.tsx` to use `VITE_WEB3FORMS_ACCESS_KEY` from environment variables
+    - Created `.gitignore` to prevent accidental exposure of sensitive files
+    - Created `.env.example` as a template for required environment variables
+    - All environment variables now securely managed via Replit Secrets
+    - Added proper error handling when environment variables are missing
+    - **For Vercel Deployment**: Add the same environment variables in Vercel dashboard under Project Settings → Environment Variables
+
+- **2025-10-03**:
+  - **Fixed Mobile UX Issues on Portfolio Page**
+    - Fixed icon and text vertical alignment issues on mobile across all sections
+      - Made icon containers responsive (h-8 w-8 on mobile, h-9 w-9 on desktop)
+      - Made icons themselves responsive to match text size at each breakpoint
+      - Added `leading-none` to headings to remove extra line height
+      - Added `flex-shrink-0` to icon containers to prevent shrinking
+      - Reduced gap from 3 to 2 on mobile for better spacing
+      - Applied consistently to: AI Design section, My Visual Work section, and No-Code Projects section
+    - Fixed swipe navigation for galleries on mobile devices
+      - Implemented improved touch event handling with `__isDragging` flag
+      - Only prevents default scroll when user is actively swiping horizontally
+      - Detects horizontal intent when deltaX > deltaY and > 5px
+      - Maintains 50px threshold for triggering navigation
+      - Fixed both My Visual Work gallery and AI Designs slider
+      - Now properly allows vertical page scrolling while capturing horizontal swipes for navigation
+    - Removed Brain icon from AI Generated section heading on mobile for cleaner look
+    - Made "Human-Directed" text wrap to next line on mobile in AI Generated heading for better readability
+
+- **2025-10-01**:
   - **Web3Forms Contact Form Integration**
     - Integrated Web3Forms API into portfolio page contact form
     - Added form submission with async/await handling

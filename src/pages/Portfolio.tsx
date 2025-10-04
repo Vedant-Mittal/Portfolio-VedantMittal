@@ -354,7 +354,19 @@ const Portfolio = () => {
 
     const form = e.currentTarget as HTMLFormElement;
     const formData = new FormData(form);
-    formData.append("access_key", "e1321a0e-33ca-4867-85a0-d365bd5ef1a1");
+    const accessKey = import.meta.env.VITE_WEB3FORMS_ACCESS_KEY;
+    
+    if (!accessKey) {
+      toast({
+        title: 'Configuration Error',
+        description: 'Web3Forms access key is not configured. Please check your environment variables.',
+        variant: 'destructive'
+      });
+      setFormSubmitting(false);
+      return;
+    }
+    
+    formData.append("access_key", accessKey);
     // Optional: add a subject to help identify messages in Web3Forms dashboard
     if (!formData.get("subject")) {
       formData.append("subject", "New portfolio inquiry");
@@ -474,7 +486,7 @@ const Portfolio = () => {
         
         {/* Background Image */}
         <motion.div 
-          className="absolute inset-0 bg-[position:38%_50%] md:bg-center bg-cover bg-no-repeat blur-[2px] md:blur-sm"
+          className="absolute inset-0 bg-[position:30%_50%] md:bg-center bg-cover bg-no-repeat blur-[2px] md:blur-sm"
           style={{ 
             backgroundImage: `url(/UniversalUpscaler_a97cb473-12d0-42bc-a06e-4faa40082f08.webp?v=1)`,
             y: bgTranslateY,
@@ -576,10 +588,12 @@ const Portfolio = () => {
             transition={{ duration: 0.6 }}
             className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3 flex items-center justify-center gap-3">
-              <Globe className="h-7 w-7 text-primary" /> 
-              No-Code Projects
-            </h2>
+            <div className="flex items-center justify-center gap-2 md:gap-3 mb-3">
+              <div className="h-8 w-8 md:h-9 md:w-9 rounded-xl bg-gradient-to-br from-primary/20 via-teal-500/20 to-purple-500/20 border border-border/60 flex items-center justify-center shadow-sm flex-shrink-0">
+                <Globe className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground leading-none">No-Code Projects</h2>
+            </div>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               A selection of websites I've designed and launched using powerful no-code platforms.
             </p>
@@ -797,33 +811,51 @@ const Portfolio = () => {
       {/* AI Designs Section as slider */}
       <section id="ai-designs" className="py-12 md:py-16 bg-white">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary/20 via-teal-500/20 to-purple-500/20 border border-border/60 flex items-center justify-center shadow-sm">
+          <div className="flex items-center justify-center gap-2 md:gap-3 mb-3">
+            <div className="hidden md:flex h-9 w-9 rounded-xl bg-gradient-to-br from-primary/20 via-teal-500/20 to-purple-500/20 border border-border/60 items-center justify-center shadow-sm flex-shrink-0">
               <Brain className="h-5 w-5 text-teal-500" />
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground">AI-Generated, Human-Directed</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground leading-none">
+              AI-Generated,<br className="md:hidden" /> Human-Directed
+            </h2>
           </div>
           <p className="text-muted-foreground max-w-2xl mx-auto mb-6">Designs where my creative vision guides artificial intelligence.</p>
           {aiDesigns.length ? (
             <div className="relative">
               <div
-                className="overflow-hidden"
+                className="overflow-hidden touch-pan-y"
+                style={{ touchAction: 'pan-y' }}
                 onTouchStart={(e) => {
                   const touch = e.touches[0];
                   (e.currentTarget as any).__startX = touch.clientX;
+                  (e.currentTarget as any).__startY = touch.clientY;
+                }}
+                onTouchMove={(e) => {
+                  const startX = (e.currentTarget as any).__startX as number | undefined;
+                  const startY = (e.currentTarget as any).__startY as number | undefined;
+                  if (typeof startX !== 'number' || typeof startY !== 'number') return;
+                  
+                  const touch = e.touches[0];
+                  const deltaX = Math.abs(touch.clientX - startX);
+                  const deltaY = Math.abs(touch.clientY - startY);
+                  
+                  if (deltaX > deltaY && deltaX > 10) {
+                    e.preventDefault();
+                  }
                 }}
                 onTouchEnd={(e) => {
                   const startX = (e.currentTarget as any).__startX as number | undefined;
                   if (typeof startX !== 'number') return;
                   const endX = (e.changedTouches && e.changedTouches[0]?.clientX) || startX;
                   const deltaX = endX - startX;
-                  const threshold = 40; // px
+                  const threshold = 50;
                   if (deltaX > threshold) {
                     aiPrev();
                   } else if (deltaX < -threshold) {
                     aiNext();
                   }
                   (e.currentTarget as any).__startX = undefined;
+                  (e.currentTarget as any).__startY = undefined;
                 }}
               >
                 <div

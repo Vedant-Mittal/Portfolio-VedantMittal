@@ -170,52 +170,40 @@ const Navbar = () => {
               </motion.a>
             </div>
             
-            {/* Auth Actions */}
-            <div className="flex items-center space-x-4">
-              {user ? (
-                <>
-                  {isInstructor && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        console.log('🚀 Admin button clicked! Current state:', {
-                          hasUser: !!user,
-                          userEmail: user?.email,
-                          isInstructor,
-                          currentUrl: window.location.href
-                        });
-                        console.log('🔄 Navigating to /admin...');
-                        window.location.href = '/admin';
-                      }}
-                      className={`${isScrolled ? 'text-foreground hover:text-primary' : 'text-white hover:text-primary'}`}
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Admin
-                    </Button>
-                  )}
+            {/* Auth Actions - Only show when logged in */}
+            {user && (
+              <div className="flex items-center space-x-4">
+                {isInstructor && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={signOut}
+                    onClick={() => {
+                      console.log('🚀 Admin button clicked! Current state:', {
+                        hasUser: !!user,
+                        userEmail: user?.email,
+                        isInstructor,
+                        currentUrl: window.location.href
+                      });
+                      console.log('🔄 Navigating to /admin...');
+                      window.location.href = '/admin';
+                    }}
                     className={`${isScrolled ? 'text-foreground hover:text-primary' : 'text-white hover:text-primary'}`}
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
+                    <Settings className="h-4 w-4 mr-2" />
+                    Admin
                   </Button>
-                </>
-              ) : (
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => window.location.href = '/auth'}
+                  onClick={signOut}
                   className={`${isScrolled ? 'text-foreground hover:text-primary' : 'text-white hover:text-primary'}`}
                 >
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Sign In
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
                 </Button>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -288,52 +276,37 @@ const Navbar = () => {
                 Blog
               </motion.a>
               
-              {/* Mobile Auth Actions */}
-              <div className="border-t border-border/20 pt-3 mt-3 space-y-2">
-                {user ? (
-                  <>
-                    {isInstructor && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setIsMobileMenuOpen(false);
-                          window.location.href = '/admin';
-                        }}
-                        className="w-full justify-start text-foreground hover:text-primary"
-                      >
-                        <Settings className="h-4 w-4 mr-2" />
-                        Admin Panel
-                      </Button>
-                    )}
+              {/* Mobile Auth Actions - Only show when logged in */}
+              {user && (
+                <div className="border-t border-border/20 pt-3 mt-3 space-y-2">
+                  {isInstructor && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => {
                         setIsMobileMenuOpen(false);
-                        signOut();
+                        window.location.href = '/admin';
                       }}
                       className="w-full justify-start text-foreground hover:text-primary"
                     >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Sign Out
+                      <Settings className="h-4 w-4 mr-2" />
+                      Admin Panel
                     </Button>
-                  </>
-                ) : (
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => {
                       setIsMobileMenuOpen(false);
-                      window.location.href = '/auth';
+                      signOut();
                     }}
                     className="w-full justify-start text-foreground hover:text-primary"
                   >
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Sign In
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

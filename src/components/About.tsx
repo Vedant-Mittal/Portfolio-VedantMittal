@@ -1,13 +1,10 @@
 import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
 import { useRef } from 'react';
-// Removed fallback to bundled profile image per request
 
 const About = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true });
-
-  // Stats removed per request
 
   return (
     <section id="about" className="py-20 px-6" ref={ref}>
@@ -18,7 +15,6 @@ const About = () => {
           animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
           transition={{ duration: 0.8 }}
         >
-          {/* Profile Image */}
           <motion.div 
             className="relative group"
             initial={{ opacity: 0, scale: 0.8 }}
@@ -44,7 +40,6 @@ const About = () => {
                       img.dataset.triedPng = 'true';
                       img.src = '/vedant.png?v=2';
                     } else {
-                      // Final neutral placeholder - no old photo
                       img.src = '/placeholder.svg';
                     }
                   }}
@@ -55,11 +50,10 @@ const About = () => {
                 />
               </div>
               <h3 className="text-2xl font-bold text-primary mb-2">Vedant Mittal</h3>
-              <p className="text-muted-foreground">Tech Entrepreneur & Educator</p>
+              <p className="text-muted-foreground">AI-Driven Digital Marketing Specialist</p>
             </div>
           </motion.div>
 
-          {/* Content */}
           <div className="space-y-8">
             <motion.div
               initial={{ opacity: 0, x: 50 }}
@@ -70,14 +64,21 @@ const About = () => {
                 About Me
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                I’ve been exploring the Indian stock market for 4 years—making plenty of mistakes, but learning even more from them. Over time, I’ve realized that success comes from discipline, patience, and a clear process, not quick wins. Alongside trading, I co-founded two digital marketing agencies, which reinforced the same lessons of strategy and emotional control. Through Investel, I share my experiences and insights in simple, honest language to help others understand markets better.
+                Hi, I'm <strong>Vedant Om Mittal</strong>.
               </p>
-              <p className="italic text-base md:text-lg text-muted-foreground leading-relaxed">
-                Note: I am not a SEBI-registered advisor. Everything here is purely educational and based on personal experience.
+              <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+                My work combines <strong>design, technology, and business</strong>. Over the past few years, I've gained experience in <strong>digital marketing, website development, and content design</strong>. This includes building <strong>8–10 websites</strong> (no-code and vibe coding), designing over <strong>250 social media posts</strong>, exploring <strong>AI-based design tools</strong>, and running <strong>Facebook ad campaigns</strong>.
+              </p>
+              <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+                I also co-founded and managed a <strong>digital marketing agency for 1.5 years</strong>, where I worked on projects involving websites, creative campaigns, and online advertising.
+              </p>
+              <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+                I hold a <strong>BBA in Business Analytics</strong> from Poornima University, and I have a strong interest in the <strong>financial markets</strong>. Alongside my professional work, I enjoy writing <strong>finance blogs</strong> to share insights and learning.
+              </p>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                For me, every project is about solving problems, experimenting with ideas, and building practical solutions that work.
               </p>
             </motion.div>
-
-            {/* Stats removed */}
           </div>
         </motion.div>
       </div>

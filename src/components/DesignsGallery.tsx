@@ -167,11 +167,11 @@ export default function DesignsGallery({ items = sampleItems }: { items?: Galler
     <section className="px-3 md:px-6 py-6">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6 text-center">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary/20 via-teal-500/20 to-purple-500/20 border border-border/60 flex items-center justify-center shadow-sm">
-              <ImageIcon className="h-5 w-5 text-primary" />
+          <div className="flex items-center justify-center gap-2 md:gap-3 mb-2">
+            <div className="h-8 w-8 md:h-9 md:w-9 rounded-xl bg-gradient-to-br from-primary/20 via-teal-500/20 to-purple-500/20 border border-border/60 flex items-center justify-center shadow-sm flex-shrink-0">
+              <ImageIcon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground">My Visual Work</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground leading-none">My Visual Work</h2>
           </div>
           <p className="text-muted-foreground max-w-2xl mx-auto text-sm md:text-base">A showcase of designs for digital platforms and social media.</p>
         </div>
@@ -189,19 +189,51 @@ export default function DesignsGallery({ items = sampleItems }: { items?: Galler
             onTouchStart={(e) => {
               const touch = e.touches[0];
               (e.currentTarget as any).__startX = touch.clientX;
+              (e.currentTarget as any).__startY = touch.clientY;
+              (e.currentTarget as any).__isDragging = false;
+            }}
+            onTouchMove={(e) => {
+              const startX = (e.currentTarget as any).__startX as number | undefined;
+              const startY = (e.currentTarget as any).__startY as number | undefined;
+              if (typeof startX !== 'number' || typeof startY !== 'number') return;
+              
+              const touch = e.touches[0];
+              const deltaX = Math.abs(touch.clientX - startX);
+              const deltaY = Math.abs(touch.clientY - startY);
+              
+              // Detect if user is trying to swipe horizontally
+              if (!((e.currentTarget as any).__isDragging) && deltaX > 5) {
+                if (deltaX > deltaY) {
+                  (e.currentTarget as any).__isDragging = true;
+                }
+              }
+              
+              // Prevent vertical scroll when dragging horizontally
+              if ((e.currentTarget as any).__isDragging) {
+                e.preventDefault();
+              }
             }}
             onTouchEnd={(e) => {
               const startX = (e.currentTarget as any).__startX as number | undefined;
+              const isDragging = (e.currentTarget as any).__isDragging;
+              
               if (typeof startX !== 'number') return;
+              
               const endX = (e.changedTouches && e.changedTouches[0]?.clientX) || startX;
               const deltaX = endX - startX;
-              const threshold = 40; // px
-              if (deltaX > threshold) {
-                goPrev();
-              } else if (deltaX < -threshold) {
-                goNext();
+              const threshold = 50;
+              
+              if (isDragging) {
+                if (deltaX > threshold) {
+                  goPrev();
+                } else if (deltaX < -threshold) {
+                  goNext();
+                }
               }
+              
               (e.currentTarget as any).__startX = undefined;
+              (e.currentTarget as any).__startY = undefined;
+              (e.currentTarget as any).__isDragging = false;
             }}
           >
             {normalizedItems.map((item) => (
@@ -281,7 +313,6 @@ export default function DesignsGallery({ items = sampleItems }: { items?: Galler
                 className="group relative rounded-lg overflow-hidden border border-border hover:shadow-md transition"
                 onClick={() => {
                   setGridOpen(false);
-                  openLightbox(idx, 0);
                 }}
               >
                 <div className="relative w-full" style={{ aspectRatio: '1 / 1' }}>
