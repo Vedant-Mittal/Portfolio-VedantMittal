@@ -12,8 +12,10 @@
     "images:webp": "node scripts/convert-to-webp.mjs",
     "storage:export": "node scripts/export-storage.mjs",
     "content:rewrite-urls": "node scripts/rewrite-content-urls.mjs",
+    "content:canonicalize-webp": "node scripts/rewrite-to-webp-and-canonicalize.mjs",
     "env:write-local": "node scripts/setup-env.mjs",
-    "media:manifest": "node scripts/generate-media-manifest.mjs"
+    "media:manifest": "node scripts/generate-media-manifest.mjs",
+    "media:cleanup-nonwebp": "node scripts/cleanup-non-webp-duplicates.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

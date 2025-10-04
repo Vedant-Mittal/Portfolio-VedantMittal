@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import CoursePage from "./pages/CoursePage";
 import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
@@ -19,7 +18,6 @@ const RoutesWrapper = () => {
     <Routes>
       {/* Set Portfolio as the home page */}
       <Route path="/" element={<Portfolio />} />
-      <Route path="/course/:courseId" element={<CoursePage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/admin/portfolio" element={<AdminPortfolio />} />
       <Route path="/auth" element={<AuthPage />} />

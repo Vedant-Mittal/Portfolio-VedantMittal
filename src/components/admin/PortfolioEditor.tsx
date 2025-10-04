@@ -311,7 +311,7 @@ export const PortfolioEditor = () => {
   };
 
   const checkStorageBucket = async () => {
-    setStorageStatus('error');
+          setStorageStatus('error');
     setStorageMessage('Supabase Storage uploads are disabled. Store images in the repo under public/media and paste site-relative paths (e.g., /media/portfolio/designs/...).');
   };
 
@@ -582,7 +582,7 @@ export const PortfolioEditor = () => {
       }
     };
 
-  const handleFileUpload = async (file: File, imageIndex?: number) => {
+    const handleFileUpload = async (file: File, imageIndex?: number) => {
       if (imageIndex !== undefined) {
         setUploadingIndex(imageIndex);
       } else {
@@ -711,7 +711,7 @@ export const PortfolioEditor = () => {
                       className="glass-card flex-1"
                       placeholder="Image URL (https://imgur.com/... recommended)"
                     />
-                  <div className="flex gap-1">
+                    <div className="flex gap-1">
                       <Button
                         type="button"
                         variant="outline"
@@ -748,7 +748,7 @@ export const PortfolioEditor = () => {
                     <div className="w-full h-32 border rounded-lg overflow-hidden bg-muted flex items-center justify-center">
                       <SmartPreview
                         src={normalizeSitePath(imageUrl.includes('drive.google.com') ? imageUrl.replace('/file/d/', '/uc?export=view&id=').replace('/view?usp=sharing', '') : imageUrl)}
-                        alt={design.title || `Image ${index + 1}`}
+                        alt={design.title || `Image ${index + 1}`} 
                         className="max-w-full max-h-full object-contain"
                       />
                     </div>
@@ -786,10 +786,10 @@ export const PortfolioEditor = () => {
                 </div>
                 <div className="flex justify-center">
                   <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="glass-card"
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="glass-card"
                       onClick={() => openMediaPicker({ kind: 'design-add', designId: design.id })}
                     >
                       <ImageIcon className="h-4 w-4 mr-2" /> Pick from Repo
@@ -798,7 +798,7 @@ export const PortfolioEditor = () => {
                       onChange={(e) => { const files = Array.from(e.target.files || []); if (files.length) { handleMultipleNewFiles(files); } }} />
                     <Button type="button" variant="outline" className="glass-card" onClick={() => newImageInputRef.current?.click()}>
                       <Upload className="h-4 w-4 mr-2" /> Upload
-                    </Button>
+                  </Button>
                   </div>
                 </div>
               </div>
@@ -1038,7 +1038,7 @@ export const PortfolioEditor = () => {
                     input.click();
                   }}>
                     <Upload className="h-4 w-4 mr-1" /> Upload
-                  </Button>
+                          </Button>
                           <Button size="icon" variant="outline" className="glass-card hover:bg-destructive/20" onClick={() => removeDesign(d.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -1104,7 +1104,7 @@ export const PortfolioEditor = () => {
                     </Button>
                     <Button type="button" variant="outline" className="glass-card" onClick={() => { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.multiple = false; input.onchange = async (e: any) => { const file = (e.target.files || [])[0]; if (!file) return; const contentBase64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve((reader.result as string)); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); }); const resp = await fetch('/api/upload-media', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentBase64, name: file.name, folder: 'ai-designs' }) }); if (resp.ok) { const j = await resp.json(); const path = j.sitePath as string; const tempUrl = URL.createObjectURL(file); setLocalPreviews((prev) => ({ ...prev, [path]: tempUrl, [path.replace(/^\//, '')]: tempUrl })); setAiDesigns(prev => [{ id: crypto.randomUUID(), type: 'single', title: file.name.replace(/\.[^.]+$/, ''), images: [path] }, ...prev]); toast({ title: 'AI image uploaded' }); } }; input.click(); }}>
                       <Upload className="h-4 w-4 mr-2" /> Upload Image
-                    </Button>
+                  </Button>
                   </div>
                 </div>
               </div>
@@ -1292,7 +1292,7 @@ export const PortfolioEditor = () => {
           ) : (
             <div className="grid grid-cols-1 gap-3">
               <Accordion type="multiple" className="w-full">
-                {websites.map((w) => (
+              {websites.map((w) => (
                   <AccordionItem key={w.id} value={w.id} className="border rounded-md glass-card">
                     <AccordionTrigger className="px-4">
                       <div className="flex items-center justify-between w-full">
@@ -1307,68 +1307,68 @@ export const PortfolioEditor = () => {
                     </AccordionTrigger>
                     <AccordionContent>
                       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <Label>Title</Label>
-                          <Input value={w.title} onChange={(e) => updateWebsite(w.id, { title: e.target.value })} className="glass-card" placeholder="Website title" />
-                        </div>
-                        <div>
-                          <Label>URL</Label>
-                          <Input value={w.url} onChange={(e) => updateWebsite(w.id, { url: e.target.value })} className="glass-card" placeholder="https://..." />
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label>Description</Label>
-                          <Textarea value={w.description} onChange={(e) => updateWebsite(w.id, { description: e.target.value })} className="glass-card min-h-[90px]" placeholder="Short description" />
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label>Screenshot</Label>
-                          <div className="space-y-2">
-                            <div className="flex gap-2">
-                              <Input 
-                                value={w.screenshot} 
-                                onChange={(e) => updateWebsite(w.id, { screenshot: e.target.value })} 
-                                className="glass-card flex-1" 
+                    <div>
+                      <Label>Title</Label>
+                      <Input value={w.title} onChange={(e) => updateWebsite(w.id, { title: e.target.value })} className="glass-card" placeholder="Website title" />
+                    </div>
+                    <div>
+                      <Label>URL</Label>
+                      <Input value={w.url} onChange={(e) => updateWebsite(w.id, { url: e.target.value })} className="glass-card" placeholder="https://..." />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>Description</Label>
+                      <Textarea value={w.description} onChange={(e) => updateWebsite(w.id, { description: e.target.value })} className="glass-card min-h-[90px]" placeholder="Short description" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>Screenshot</Label>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Input 
+                            value={w.screenshot} 
+                            onChange={(e) => updateWebsite(w.id, { screenshot: e.target.value })} 
+                            className="glass-card flex-1" 
                                 placeholder="/media/websites/your-image.webp or URL" 
                               />
                               <Button type="button" variant="outline" size="icon" className="glass-card" onClick={() => openMediaPicker({ kind: 'website-screenshot', websiteId: w.id })}>
                                 <ImageIcon className="h-4 w-4" />
                               </Button>
                               <Button type="button" variant="outline" size="icon" className="glass-card" onClick={() => { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.multiple = false; input.onchange = async (e: any) => { const file = (e.target.files || [])[0]; if (!file) return; try { const path = await uploadToGit(file, 'websites'); const temp = URL.createObjectURL(file); setLocalPreviews((prev) => ({ ...prev, [path]: temp, [path.replace(/^\//, '')]: temp })); updateWebsite(w.id, { screenshot: path }); toast({ title: 'Screenshot uploaded' }); } catch (err: any) { toast({ title: 'Upload failed', description: err?.message || 'Unknown error', variant: 'destructive' }); } }; input.click(); }}>
-                                <Upload className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            {w.screenshot && (
-                              <div className="w-full h-40 border rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                                <SmartPreview src={normalizeSitePath(w.screenshot.includes('drive.google.com') ? w.screenshot.replace('/file/d/', '/uc?export=view&id=').replace('/view?usp=sharing', '') : w.screenshot)} alt={w.title || 'Website screenshot'} className="max-w-full max-h-full object-contain" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="md:col-span-2">
-                          <Label>Tech Stack</Label>
-                          <div className="flex gap-2 mb-2">
-                            <Input placeholder="Add a technology (Enter)" className="glass-card flex-1" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const value = (e.target as HTMLInputElement).value; addStackTag(w.id, value); (e.target as HTMLInputElement).value = ''; } }} />
-                            <Button type="button" variant="outline" className="glass-card" onClick={(e) => { const input = (e.currentTarget.previousSibling as HTMLInputElement); if (input && input.value) { addStackTag(w.id, input.value); input.value = ''; } }}>Add</Button>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {(w.stack || []).map((t) => (
-                              <Badge key={t} variant="secondary" className="cursor-pointer" onClick={() => removeStackTag(w.id, t)}>
-                                {t} ×
-                              </Badge>
-                            ))}
-                            {(!w.stack || w.stack.length === 0) && (
-                              <span className="text-sm text-muted-foreground">No stack tags yet.</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="md:col-span-2 flex justify-end">
-                          <Button variant="outline" className="glass-card hover:bg-destructive/20" onClick={() => removeWebsite(w.id)}>
-                            <Trash2 className="h-4 w-4" />
+                            <Upload className="h-4 w-4" />
                           </Button>
                         </div>
+                        {w.screenshot && (
+                          <div className="w-full h-40 border rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                                <SmartPreview src={normalizeSitePath(w.screenshot.includes('drive.google.com') ? w.screenshot.replace('/file/d/', '/uc?export=view&id=').replace('/view?usp=sharing', '') : w.screenshot)} alt={w.title || 'Website screenshot'} className="max-w-full max-h-full object-contain" />
+                          </div>
+                        )}
                       </div>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>Tech Stack</Label>
+                      <div className="flex gap-2 mb-2">
+                            <Input placeholder="Add a technology (Enter)" className="glass-card flex-1" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const value = (e.target as HTMLInputElement).value; addStackTag(w.id, value); (e.target as HTMLInputElement).value = ''; } }} />
+                            <Button type="button" variant="outline" className="glass-card" onClick={(e) => { const input = (e.currentTarget.previousSibling as HTMLInputElement); if (input && input.value) { addStackTag(w.id, input.value); input.value = ''; } }}>Add</Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(w.stack || []).map((t) => (
+                          <Badge key={t} variant="secondary" className="cursor-pointer" onClick={() => removeStackTag(w.id, t)}>
+                            {t} ×
+                          </Badge>
+                        ))}
+                        {(!w.stack || w.stack.length === 0) && (
+                          <span className="text-sm text-muted-foreground">No stack tags yet.</span>
+                        )}
+                      </div>
+                    </div>
+                        <div className="md:col-span-2 flex justify-end">
+                    <Button variant="outline" className="glass-card hover:bg-destructive/20" onClick={() => removeWebsite(w.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
                     </AccordionContent>
                   </AccordionItem>
-                ))}
+              ))}
               </Accordion>
             </div>
           )}

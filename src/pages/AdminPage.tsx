@@ -10,8 +10,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useCourses, Course } from '@/hooks/useCourses';
-import { CourseEditor } from '@/components/admin/CourseEditor';
-import { LectureManager } from '@/components/admin/LectureManager';
 
 const AdminPage = () => {
   const { isAdmin, isInstructor, loading: authLoading, user, profile } = useAuth();
@@ -74,30 +72,7 @@ const AdminPage = () => {
     );
   }
 
-  const handleEditCourse = (course: Course) => {
-    setSelectedCourse(course);
-    setIsEditing(true);
-    setActiveTab('editor');
-  };
-
-  const handleNewCourse = () => {
-    setSelectedCourse(null);
-    setIsEditing(true);
-    setActiveTab('editor');
-  };
-
-  const handleSaveCourse = () => {
-    setIsEditing(false);
-    setSelectedCourse(null);
-    setActiveTab('courses');
-    refetch();
-  };
-
-
-  const handleManageLectures = (course: Course) => {
-    setSelectedCourse(course);
-    setActiveTab('lectures');
-  };
+  // Course management UI removed from website per request; keep data and hooks intact
 
   const handleDeleteCourse = async (course: Course) => {
     const confirmDelete = window.confirm(
@@ -166,24 +141,16 @@ const AdminPage = () => {
             </div>
           </div>
           
-          {activeTab === 'courses' && (
-            <div className="flex gap-2">
-              <Button onClick={handleNewCourse} className="glass-card bg-primary/90 hover:bg-primary text-primary-foreground">
-                <Plus className="mr-2 h-4 w-4" />
-                New Course
-              </Button>
-              <Button onClick={() => navigate('/admin/portfolio')} variant="outline" className="glass-card">
-                Edit Portfolio
-              </Button>
-            </div>
-          )}
+          <div className="flex gap-2">
+            <Button onClick={() => navigate('/admin/portfolio')} variant="outline" className="glass-card">
+              Edit Portfolio
+            </Button>
+          </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="glass-card grid w-full max-w-md grid-cols-3 p-1">
-            <TabsTrigger value="courses">Courses</TabsTrigger>
-            <TabsTrigger value="editor" disabled={!isEditing && !selectedCourse}>Editor</TabsTrigger>
-            <TabsTrigger value="lectures" disabled={!selectedCourse}>Lectures</TabsTrigger>
+        <Tabs value={'courses'} className="w-full">
+          <TabsList className="glass-card grid w-full max-w-xs grid-cols-1 p-1">
+            <TabsTrigger value="courses">Courses (view-only)</TabsTrigger>
           </TabsList>
 
           <TabsContent value="courses" className="mt-6">
@@ -210,73 +177,14 @@ const AdminPage = () => {
                     <span>{course.level}</span>
                     <span>{course.price}</span>
                   </div>
-
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEditCourse(course)}
-                      className="glass-card flex-1"
-                      data-testid={`button-edit-${course.id}`}
-                    >
-                      <Edit className="mr-2 h-3 w-3" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleManageLectures(course)}
-                      className="glass-card flex-1"
-                      data-testid={`button-lectures-${course.id}`}
-                    >
-                      <Upload className="mr-2 h-3 w-3" />
-                      Lectures
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/course/${course.slug}`)}
-                      className="glass-card"
-                      data-testid={`button-view-${course.id}`}
-                    >
-                      <Eye className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteCourse(course)}
-                      className="glass-card text-destructive hover:text-destructive"
-                      data-testid={`button-delete-${course.id}`}
-                    >
-                      <Trash2 className="h-3 w-3" />
+                    <Button variant="outline" size="sm" onClick={() => navigate('/admin/portfolio')} className="glass-card flex-1">
+                      Edit Portfolio
                     </Button>
                   </div>
                 </motion.div>
               ))}
             </div>
-          </TabsContent>
-
-          <TabsContent value="editor" className="mt-6">
-            {(isEditing || selectedCourse) && (
-              <CourseEditor
-                course={selectedCourse}
-                onSave={handleSaveCourse}
-                onCancel={() => {
-                  setIsEditing(false);
-                  setSelectedCourse(null);
-                  setActiveTab('courses');
-                }}
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="lectures" className="mt-6">
-            {selectedCourse && (
-              <LectureManager
-                course={selectedCourse}
-                onBack={() => setActiveTab('courses')}
-              />
-            )}
           </TabsContent>
         </Tabs>
       </div>

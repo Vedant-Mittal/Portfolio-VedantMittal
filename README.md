@@ -136,8 +136,8 @@ investel-platform/
 │   │   ├── AdminPage.tsx         # Admin dashboard
 │   │   ├── AdminPortfolio.tsx    # Portfolio editor page
 │   │   ├── AuthPage.tsx          # Login/signup with OTP
-│   │   ├── CoursePage.tsx        # Individual course view
-│   │   ├── Index.tsx             # Original home page
+│   │   ├── CoursePage.tsx        # Individual course view (removed from app)
+│   │   ├── Index.tsx             # Original home page (removed from app)
 │   │   ├── NotFound.tsx          # 404 page
 │   │   └── Portfolio.tsx         # Main portfolio page (1000+ lines)
 │   │
@@ -213,7 +213,7 @@ The application uses **React Router v6** for client-side routing:
 |-------|-----------|-------------|---------------|
 | `/` | Portfolio | Main portfolio landing page | No |
 | `/portfolio` | Portfolio | Alternative portfolio route | No |
-| `/course/:courseId` | CoursePage | Individual course view with lectures | No |
+| `/course/:courseId` | CoursePage | Individual course view with lectures | Removed |
 | `/admin` | AdminPage | Admin dashboard for content management | Yes |
 | `/admin/portfolio` | AdminPortfolio | Portfolio content editor | Yes |
 | `/auth` | AuthPage | Login/signup with OTP verification | No |
@@ -230,7 +230,7 @@ The application uses **React Router v6** for client-side routing:
         <CanonicalUpdater />
         <Routes>
           <Route path="/" element={<Portfolio />} />
-          <Route path="/course/:courseId" element={<CoursePage />} />
+          {/* Course routes removed */}
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/portfolio" element={<AdminPortfolio />} />
           <Route path="/auth" element={<AuthPage />} />
