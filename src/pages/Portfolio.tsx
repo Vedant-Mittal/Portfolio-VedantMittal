@@ -146,6 +146,8 @@ const Portfolio = () => {
   const [aiDesigns, setAiDesigns] = useState<GalleryItem[]>([]);
   const [aiCurrentIndex, setAiCurrentIndex] = useState(0);
   const [aiVisibleItems, setAiVisibleItems] = useState(2);
+  const ASSET_VERSION = (import.meta as any)?.env?.VITE_ASSET_VERSION || '1';
+  const heroBgUrl = `/portfolio-hero-bg.webp?v=${ASSET_VERSION}`;
   const [heroParallax, setHeroParallax] = useState({ x: 0, y: 0 });
   const heroRef = useRef<HTMLDivElement | null>(null);
 
@@ -481,14 +483,14 @@ const Portfolio = () => {
         }}
         onMouseLeave={() => setHeroParallax({ x: 0, y: 0 })}
       >
-        {/* Preload image for better performance (use stable filename, no query param) */}
-        <link rel="preload" as="image" href="/portfolio-hero-bg.webp" />
+        {/* Preload image for better performance with cache-busting via version */}
+        <link rel="preload" as="image" href={heroBgUrl} />
         
         {/* Background Image */}
         <motion.div 
           className="absolute inset-0 bg-[position:30%_50%] md:bg-center bg-cover bg-no-repeat blur-[2px] md:blur-sm"
           style={{ 
-            backgroundImage: `url(/portfolio-hero-bg.webp)`,
+            backgroundImage: `url(${heroBgUrl})`,
             y: bgTranslateY,
             scale: 1.06,
           }}
