@@ -94,8 +94,7 @@ export const PortfolioEditor = () => {
   const [localPreviews, setLocalPreviews] = useState<Record<string, string>>({});
   const [dbStatus, setDbStatus] = useState<'checking' | 'ok' | 'error'>('checking');
   const [dbMessage, setDbMessage] = useState<string>('');
-  const [storageStatus, setStorageStatus] = useState<'checking' | 'ok' | 'error'>('checking');
-  const [storageMessage, setStorageMessage] = useState<string>('');
+  
   const websiteInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const [bulkUploading, setBulkUploading] = useState<{ designs: boolean; ai: boolean }>({ designs: false, ai: false });
   const designsBulkInputRef = useRef<HTMLInputElement>(null);
@@ -310,14 +309,10 @@ export const PortfolioEditor = () => {
     }
   };
 
-  const checkStorageBucket = async () => {
-          setStorageStatus('error');
-    setStorageMessage('Supabase Storage uploads are disabled. Store images in the repo under public/media and paste site-relative paths (e.g., /media/portfolio/designs/...).');
-  };
+  
 
   useEffect(() => { 
     load(); 
-    checkStorageBucket();
   }, []);
 
   const addDesign = () => {
@@ -865,13 +860,7 @@ export const PortfolioEditor = () => {
           <div className="text-sm text-destructive">✗ Database error: {dbMessage}</div>
         )}
         
-        {storageStatus === 'error' && (
-          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
-            <div className="text-sm text-destructive font-medium">✗ Storage Error</div>
-            <div className="text-sm text-destructive/80 mt-1">{storageMessage}</div>
-            <div className="text-sm text-muted-foreground mt-2">Paste site-relative paths from /public/media.</div>
-          </div>
-        )}
+        
       </div>
 
       <Tabs defaultValue="designs">
