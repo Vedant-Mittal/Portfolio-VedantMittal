@@ -507,7 +507,18 @@ function SmartImg({
   className?: string;
   fallback?: string;
 }) {
-  const [currentSrc, setCurrentSrc] = useState(src);
+  // Normalize to absolute site path if it's an in-site media reference
+  const normalize = (s: string) => {
+    if (!s) return s;
+    if (s.startsWith('http://') || s.startsWith('https://')) return s;
+    if (s.startsWith('/')) return s;
+    return `/${s}`; // ensure leading slash (avoids /portfolio/media/... 404s)
+  };
+  const original = normalize(src);
+  const preferred = original.replace(/\.(png|jpe?g)(\?.*)?$/i, (_m, _ext, qs) => `.webp${qs ?? ''}`);
+
+  const [currentSrc, setCurrentSrc] = useState(preferred);
+  const [triedOriginal, setTriedOriginal] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -522,26 +533,24 @@ function SmartImg({
       )}
       loading="lazy"
       decoding="async"
-      crossOrigin="anonymous"
-      referrerPolicy="no-referrer"
       onError={(e) => {
-        console.error('❌ Image failed to load:', { 
-          originalSrc: src, 
-          currentSrc, 
-          fallback,
-          error: e.currentTarget.src 
-        });
+        if (!triedOriginal && currentSrc !== original) {
+          setTriedOriginal(true);
+          setCurrentSrc(original);
+          setIsLoaded(false);
+          return;
+        }
         if (fallback && currentSrc !== fallback) {
-          console.log('🔄 Switching to fallback:', fallback);
           setCurrentSrc(fallback);
           setHasError(true);
           setIsLoaded(false);
+          return;
         }
+        console.error('❌ Image failed to load:', { originalSrc: original, currentSrc, fallback, error: e.currentTarget.src });
       }}
       onLoad={() => {
         if (!hasError) {
           setIsLoaded(true);
-          console.log('✅ Image loaded successfully:', { src: currentSrc, alt });
         }
       }}
     />
