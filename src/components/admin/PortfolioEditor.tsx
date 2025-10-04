@@ -1023,10 +1023,43 @@ export const PortfolioEditor = () => {
                   <Button size="sm" variant="outline" className="glass-card" onClick={() => openMediaPicker({ kind: 'design-add', designId: d.id })}>
                     <ImageIcon className="h-4 w-4 mr-1" /> Add from Repo
                   </Button>
-                  <Button size="sm" variant="outline" className="glass-card" onClick={() => { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.multiple = true; input.onchange = async (e: any) => { const files = Array.from(e.target.files || []); if (!files.length) return; try { const uploaded: string[] = []; for (const file of files) { const contentBase64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve((reader.result as string)); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); }); const resp = await fetch('/api/upload-media', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentBase64, name: file.name, folder: 'designs' }) }); if (resp.ok) { const j = await resp.json(); uploaded.push(j.sitePath); } }
-                    if (uploaded.length) { setDesigns(prev => prev.map(x => x.id === d.id ? { ...x, images: [...x.images, ...uploaded] } : x)); toast({ title: 'Uploaded', description: `${uploaded.length} image(s) added.` }); }
-                  };
-                  input.click(); }}>
+                  <Button size="sm" variant="outline" className="glass-card" onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*';
+                    input.multiple = true;
+                    input.onchange = async (e: any) => {
+                      const files = Array.from(e.target.files || []);
+                      if (!files.length) return;
+                      try {
+                        const uploaded: string[] = [];
+                        for (const file of files) {
+                          const contentBase64 = await new Promise<string>((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = () => resolve((reader.result as string));
+                            reader.onerror = () => reject(reader.error);
+                            reader.readAsDataURL(file);
+                          });
+                          const resp = await fetch('/api/upload-media', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contentBase64, name: file.name, folder: 'designs' })
+                          });
+                          if (resp.ok) {
+                            const j = await resp.json();
+                            uploaded.push(j.sitePath);
+                          }
+                        }
+                        if (uploaded.length) {
+                          setDesigns(prev => prev.map(x => x.id === d.id ? { ...x, images: [...x.images, ...uploaded] } : x));
+                          toast({ title: 'Uploaded', description: `${uploaded.length} image(s) added.` });
+                        }
+                      } catch (err: any) {
+                        toast({ title: 'Upload failed', description: err?.message || 'Unknown error', variant: 'destructive' });
+                      }
+                    };
+                    input.click();
+                  }}>
                     <Upload className="h-4 w-4 mr-1" /> Upload
                   </Button>
                           <Button size="icon" variant="outline" className="glass-card hover:bg-destructive/20" onClick={() => removeDesign(d.id)}>

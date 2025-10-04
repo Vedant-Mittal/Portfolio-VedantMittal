@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/generate-media-manifest.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -13,8 +13,7 @@
     "storage:export": "node scripts/export-storage.mjs",
     "content:rewrite-urls": "node scripts/rewrite-content-urls.mjs",
     "env:write-local": "node scripts/setup-env.mjs",
-    "media:manifest": "node scripts/generate-media-manifest.mjs",
-    "build": "vite build && node scripts/generate-media-manifest.mjs"
+    "media:manifest": "node scripts/generate-media-manifest.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
