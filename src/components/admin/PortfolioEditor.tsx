@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export type EditableGalleryItem = {
   id: string;
@@ -49,55 +50,9 @@ async function getSection(section: string) {
     .maybeSingle();
 }
 
-// Image upload helper function
-async function uploadImageToSupabase(file: File, folder: string = 'designs'): Promise<string> {
-  try {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `${folder}/${fileName}`;
-
-    // Upload file to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from('storage')
-      .upload(filePath, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (error) {
-      const status = (error as any).statusCode || (error as any).status;
-      
-      if (status === 404 || status === 400) {
-        throw new Error(
-          'Storage bucket "storage" not found. Please create it in your Supabase dashboard:\n\n' +
-          '1. Go to Storage in your Supabase dashboard\n' +
-          '2. Click "New bucket"\n' +
-          '3. Name it "storage"\n' +
-          '4. Make it public\n' +
-          '5. Save the bucket'
-        );
-      } else if (status === 403 || status === 401) {
-        throw new Error(
-          'Permission denied. Please ensure:\n' +
-          '1. The "storage" bucket exists and is public\n' +
-          '2. Storage policies allow uploads\n' +
-          '3. The bucket has proper access settings'
-        );
-      }
-      
-      throw error;
-    }
-
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('storage')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
-  } catch (error: any) {
-    console.error('Upload error:', error);
-    throw new Error(error.message || 'Failed to upload image. Please try again.');
-  }
+// Image upload helper function (disabled)
+async function uploadImageToSupabase(_file: File, _folder: string = 'designs'): Promise<string> {
+  throw new Error('Image uploads are disabled. Store images under public/media and paste a site-relative path like /media/portfolio/...');
 }
 
 async function upsertSection(section: string, name: string, content: Record<string, any>) {
@@ -147,6 +102,57 @@ export const PortfolioEditor = () => {
   const [replaceTarget, setReplaceTarget] = useState<{ target: 'designs' | 'ai'; designId: string; imageIndex: number } | null>(null);
   const [editingSingleId, setEditingSingleId] = useState<string | null>(null);
   const [editingAISingleId, setEditingAISingleId] = useState<string | null>(null);
+
+  // Media manifest and picker state
+  type MediaPickTarget =
+    | { kind: 'design-image'; designId: string; imageIndex: number }
+    | { kind: 'design-add'; designId: string }
+    | { kind: 'ai-image'; designId: string; imageIndex: number }
+    | { kind: 'ai-add'; designId: string }
+    | { kind: 'website-screenshot'; websiteId: string };
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+  const [mediaPickerTarget, setMediaPickerTarget] = useState<MediaPickTarget | null>(null);
+  const [mediaFiles, setMediaFiles] = useState<string[]>([]);
+  const [mediaQuery, setMediaQuery] = useState('');
+  const filteredMedia = useMemo(() => {
+    const q = mediaQuery.trim().toLowerCase();
+    if (!q) return mediaFiles;
+    return mediaFiles.filter((p) => p.toLowerCase().includes(q));
+  }, [mediaQuery, mediaFiles]);
+
+  const openMediaPicker = async (target: MediaPickTarget) => {
+    setMediaPickerTarget(target);
+    setMediaPickerOpen(true);
+    try {
+      if (mediaFiles.length === 0) {
+        const res = await fetch('/media-manifest.json', { cache: 'no-cache' });
+        if (!res.ok) throw new Error('Failed to load media manifest');
+        const data = await res.json();
+        const files = Array.isArray(data?.files) ? (data.files as string[]) : [];
+        setMediaFiles(files);
+      }
+    } catch (e: any) {
+      toast({ title: 'Failed to load media list', description: e?.message || 'Unknown error', variant: 'destructive' });
+    }
+  };
+
+  const applyPickedMedia = (path: string) => {
+    if (!mediaPickerTarget) return;
+    const t = mediaPickerTarget;
+    if (t.kind === 'design-image') {
+      updateImageInDesign(t.designId, t.imageIndex, path);
+    } else if (t.kind === 'design-add') {
+      addImageToDesign(t.designId, path);
+    } else if (t.kind === 'ai-image') {
+      setAiDesigns(prev => prev.map(d => d.id === t.designId ? { ...d, images: d.images.map((img, idx) => idx === t.imageIndex ? path : img) } : d));
+    } else if (t.kind === 'ai-add') {
+      setAiDesigns(prev => prev.map(d => d.id === t.designId ? { ...d, images: [...d.images, path] } : d));
+    } else if (t.kind === 'website-screenshot') {
+      updateWebsite(t.websiteId, { screenshot: path });
+    }
+    setMediaPickerOpen(false);
+    setMediaPickerTarget(null);
+  };
 
   // Migration function to convert old data format to new format
   const migrateOldDesignData = (oldItem: any): EditableGalleryItem => {
@@ -216,31 +222,8 @@ export const PortfolioEditor = () => {
   };
 
   const checkStorageBucket = async () => {
-    setStorageStatus('checking');
-    try {
-      const { data, error } = await supabase.storage.from('storage').list('', { limit: 1 });
-      
-      if (data !== null && !error) {
-        setStorageStatus('ok');
-        setStorageMessage('Storage bucket is ready');
-      } else if (error) {
-        const status = (error as any).statusCode || (error as any).status;
-        
-        if (status === 404 || status === 400) {
-          setStorageStatus('error');
-          setStorageMessage('Storage bucket "storage" not found. Image uploads will fail until you create it.');
-        } else if (status === 403 || status === 401) {
-          setStorageStatus('error');
-          setStorageMessage('Permission denied. Please ensure the "storage" bucket exists and is public with proper access policies.');
-        } else {
-          setStorageStatus('error');
-          setStorageMessage(error.message || 'Unable to access storage bucket');
-        }
-      }
-    } catch (e: any) {
-      setStorageStatus('error');
-      setStorageMessage(e.message || 'Unable to check storage bucket');
-    }
+    setStorageStatus('error');
+    setStorageMessage('Supabase Storage uploads are disabled. Store images in the repo under public/media and paste site-relative paths (e.g., /media/portfolio/designs/...).');
   };
 
   useEffect(() => { 
@@ -612,33 +595,15 @@ export const PortfolioEditor = () => {
                       className="glass-card flex-1"
                       placeholder="Image URL (https://imgur.com/... recommended)"
                     />
-                    <div className="flex gap-1">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        ref={(el) => fileInputRefs.current[`${design.id}-${index}`] = el}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleFileUpload(file, index);
-                          }
-                        }}
-                        data-testid={`input-file-${design.id}-${index}`}
-                      />
+                  <div className="flex gap-1">
                       <Button
                         type="button"
                         variant="outline"
                         size="icon"
                         className="glass-card"
-                        disabled={uploadingIndex === index}
-                        onClick={() => fileInputRefs.current[`${design.id}-${index}`]?.click()}
+                        onClick={() => openMediaPicker({ kind: 'design-image', designId: design.id, imageIndex: index })}
                       >
-                        {uploadingIndex === index ? (
-                          <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <Upload className="h-4 w-4" />
-                        )}
+                        <ImageIcon className="h-4 w-4" />
                       </Button>
                       {(design.images.length > 1 || !isCarousel) && (
                         <Button 
@@ -721,40 +686,14 @@ export const PortfolioEditor = () => {
                     Add URL
                   </Button>
                 </div>
-                <div className="text-center text-sm text-muted-foreground">or</div>
                 <div className="flex justify-center">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    ref={newImageInputRef}
-                    onChange={(e) => {
-                      const files = Array.from(e.target.files || []);
-                      if (files.length) {
-                        handleMultipleNewFiles(files);
-                      }
-                    }}
-                    data-testid={`input-file-new-${design.id}`}
-                  />
                   <Button
                     type="button"
                     variant="outline"
                     className="glass-card"
-                    disabled={uploadingNew}
-                    onClick={() => newImageInputRef.current?.click()}
+                    onClick={() => openMediaPicker({ kind: 'design-add', designId: design.id })}
                   >
-                    {uploadingNew ? (
-                      <>
-                        <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Images
-                      </>
-                    )}
+                    <ImageIcon className="h-4 w-4 mr-2" /> Pick from Repo
                   </Button>
                 </div>
               </div>
@@ -802,15 +741,11 @@ export const PortfolioEditor = () => {
       </div>
 
       <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">📷 Image Hosting Tips</h3>
+        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">📷 Image Source</h3>
         <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
-          <p><strong>For best results, use these image hosting services:</strong></p>
-          <ul className="list-disc list-inside space-y-1 ml-2">
-            <li><strong>Imgur</strong> - Upload at <a href="https://imgur.com" target="_blank" className="underline hover:no-underline">imgur.com</a> (free, reliable, no expiration)</li>
-            <li><strong>GitHub</strong> - Upload to a GitHub repo and use the raw URL (free for public repos)</li>
-            <li><strong>Direct URLs</strong> - URLs ending in .jpg, .png, .gif, .webp work best</li>
-          </ul>
-          <p className="text-yellow-700 dark:text-yellow-300"><strong>⚠️ Avoid:</strong> Google Drive, Dropbox, or other file sharing services (often blocked for direct embedding)</p>
+          <p><strong>Use site-relative paths from the repo:</strong> place images under <code>/public/media</code> and paste paths like <code>/media/portfolio/designs/your-image.webp</code>.</p>
+          <p>External hosts still work if they serve direct image URLs.</p>
+          <p className="text-yellow-700 dark:text-yellow-300"><strong>Note:</strong> Supabase Storage uploads are disabled to reduce egress.</p>
         </div>
       </div>
 
@@ -825,38 +760,11 @@ export const PortfolioEditor = () => {
           <div className="text-sm text-destructive">✗ Database error: {dbMessage}</div>
         )}
         
-        {storageStatus === 'checking' && (
-          <div className="text-sm text-muted-foreground">Checking storage bucket…</div>
-        )}
-        {storageStatus === 'ok' && (
-          <div className="text-sm text-emerald-600">✓ Storage: {storageMessage}</div>
-        )}
         {storageStatus === 'error' && (
           <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-md">
             <div className="text-sm text-destructive font-medium">✗ Storage Error</div>
             <div className="text-sm text-destructive/80 mt-1">{storageMessage}</div>
-            <div className="text-sm text-muted-foreground mt-2 space-y-1">
-              <div className="font-medium">To fix this, create the storage bucket:</div>
-              <ol className="list-decimal list-inside space-y-0.5 ml-2">
-                <li>Open your Supabase dashboard</li>
-                <li>Go to Storage section</li>
-                <li>Click "New bucket"</li>
-                <li>Name it "storage"</li>
-                <li>Set it as public</li>
-                <li>Click "Save"</li>
-              </ol>
-              <div className="mt-2">
-                <Button 
-                  onClick={checkStorageBucket} 
-                  variant="outline" 
-                  size="sm"
-                  className="mt-1"
-                  data-testid="button-recheck-storage"
-                >
-                  Recheck Storage
-                </Button>
-              </div>
-            </div>
+            <div className="text-sm text-muted-foreground mt-2">Paste site-relative paths from /public/media.</div>
           </div>
         )}
       </div>
@@ -1004,16 +912,8 @@ export const PortfolioEditor = () => {
                           />
                         </div>
                         <div className="flex items-center gap-2">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                            ref={(el) => carouselInputRefs.current[`designs-${d.id}`] = el}
-                            onChange={(e) => handleUploadToCarousel('designs', d.id, e.target.files)}
-                          />
-                          <Button size="sm" variant="outline" className="glass-card" onClick={() => carouselInputRefs.current[`designs-${d.id}`]?.click()}>
-                            <Upload className="h-4 w-4 mr-1" /> Upload Images
+                          <Button size="sm" variant="outline" className="glass-card" onClick={() => openMediaPicker({ kind: 'design-add', designId: d.id })}>
+                            <ImageIcon className="h-4 w-4 mr-1" /> Add from Repo
                           </Button>
                           <Button size="icon" variant="outline" className="glass-card hover:bg-destructive/20" onClick={() => removeDesign(d.id)}>
                             <Trash2 className="h-4 w-4" />
@@ -1038,8 +938,8 @@ export const PortfolioEditor = () => {
                               <GripVertical className="h-3.5 w-3.5" />
                             </div>
                             <div className="absolute top-1 right-1 flex items-center gap-1">
-                              <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => { setReplaceTarget({ target: 'designs', designId: d.id, imageIndex: imageIdx }); replaceInputRef.current?.click(); }}>
-                                <RefreshCw className="h-3.5 w-3.5" />
+                              <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => openMediaPicker({ kind: 'design-image', designId: d.id, imageIndex: imageIdx })}>
+                                <Pencil className="h-3.5 w-3.5" />
                               </Button>
                               <Button size="icon" variant="secondary" className="h-6 w-6 hover:bg-destructive/20" onClick={() => onRemoveImage(d.id, imageIdx)}>
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -1057,20 +957,7 @@ export const PortfolioEditor = () => {
               )}
             </TabsContent>
           </Tabs>
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            ref={replaceInputRef}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file && replaceTarget) {
-                handleReplaceImage(replaceTarget.target, replaceTarget.designId, replaceTarget.imageIndex, file);
-              }
-              if (replaceInputRef.current) replaceInputRef.current.value = '';
-              setReplaceTarget(null);
-            }}
-          />
+          {/* File replace input removed in favor of repo picker */}
         </Card>
         </TabsContent>
 
@@ -1087,32 +974,13 @@ export const PortfolioEditor = () => {
             <TabsContent value="single">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    ref={aiBulkInputRef}
-                    onChange={(e) => handleBulkAddAIDesigns(e.target.files)}
-                    data-testid="bulk-input-ai-designs"
-                  />
                   <Button
                     type="button"
                     variant="outline"
                     className="glass-card"
-                    onClick={() => aiBulkInputRef.current?.click()}
-                    disabled={bulkUploading.ai}
+                    onClick={() => setAiDesigns(prev => [{ id: crypto.randomUUID(), type: 'single', title: 'Untitled', images: [] }, ...prev])}
                   >
-                    {bulkUploading.ai ? (
-                      <>
-                        <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="mr-2 h-4 w-4" /> Upload Images
-                      </>
-                    )}
+                    <Plus className="mr-2 h-4 w-4" /> Add Empty Post
                   </Button>
                 </div>
               </div>
@@ -1210,16 +1078,8 @@ export const PortfolioEditor = () => {
                           />
                         </div>
                         <div className="flex items-center gap-2">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                            ref={(el) => carouselInputRefs.current[`ai-${d.id}`] = el}
-                            onChange={(e) => handleUploadToCarousel('ai', d.id, e.target.files)}
-                          />
-                          <Button size="sm" variant="outline" className="glass-card" onClick={() => carouselInputRefs.current[`ai-${d.id}`]?.click()}>
-                            <Upload className="h-4 w-4 mr-1" /> Upload Images
+                          <Button size="sm" variant="outline" className="glass-card" onClick={() => openMediaPicker({ kind: 'ai-add', designId: d.id })}>
+                            <ImageIcon className="h-4 w-4 mr-1" /> Add from Repo
                           </Button>
                           <Button size="icon" variant="outline" className="glass-card hover:bg-destructive/20" onClick={() => setAiDesigns(prev => prev.filter(x => x.id !== d.id))}>
                             <Trash2 className="h-4 w-4" />
@@ -1244,8 +1104,8 @@ export const PortfolioEditor = () => {
                               <GripVertical className="h-3.5 w-3.5" />
                             </div>
                             <div className="absolute top-1 right-1 flex items-center gap-1">
-                              <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => { setReplaceTarget({ target: 'ai', designId: d.id, imageIndex: imageIdx }); replaceInputRef.current?.click(); }}>
-                                <RefreshCw className="h-3.5 w-3.5" />
+                              <Button size="icon" variant="secondary" className="h-6 w-6" onClick={() => openMediaPicker({ kind: 'ai-image', designId: d.id, imageIndex: imageIdx })}>
+                                <Pencil className="h-3.5 w-3.5" />
                               </Button>
                               <Button size="icon" variant="secondary" className="h-6 w-6 hover:bg-destructive/20" onClick={() => setAiDesigns(prev => prev.map(x => x.id === d.id ? { ...x, images: x.images.filter((_, idx) => idx !== imageIdx) } : x))}>
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -1263,20 +1123,7 @@ export const PortfolioEditor = () => {
               )}
             </TabsContent>
           </Tabs>
-          <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            ref={replaceInputRef}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file && replaceTarget) {
-                handleReplaceImage(replaceTarget.target, replaceTarget.designId, replaceTarget.imageIndex, file);
-              }
-              if (replaceInputRef.current) replaceInputRef.current.value = '';
-              setReplaceTarget(null);
-            }}
-          />
+          {/* File replace input removed in favor of repo picker */}
         </Card>
         </TabsContent>
 
@@ -1317,36 +1164,14 @@ export const PortfolioEditor = () => {
                             className="glass-card flex-1" 
                             placeholder="https://imgur.com/... (recommended) or direct image URL" 
                           />
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            ref={(el) => websiteInputRefs.current[w.id] = el}
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                try {
-                                  const uploadedUrl = await uploadImageToSupabase(file, 'websites');
-                                  updateWebsite(w.id, { screenshot: uploadedUrl });
-                                  toast({ title: 'Screenshot uploaded successfully!', description: 'Your screenshot has been uploaded.' });
-                                  // Clear the file input value to allow re-selecting the same file
-                                  if (websiteInputRefs.current[w.id]) {
-                                    websiteInputRefs.current[w.id]!.value = '';
-                                  }
-                                } catch (error: any) {
-                                  toast({ title: 'Upload failed', description: error.message, variant: 'destructive' });
-                                }
-                              }
-                            }}
-                          />
                           <Button
                             type="button"
                             variant="outline"
                             size="icon"
                             className="glass-card"
-                            onClick={() => websiteInputRefs.current[w.id]?.click()}
+                            onClick={() => openMediaPicker({ kind: 'website-screenshot', websiteId: w.id })}
                           >
-                            <Upload className="h-4 w-4" />
+                            <ImageIcon className="h-4 w-4" />
                           </Button>
                         </div>
                         {w.screenshot && w.screenshot.includes('drive.google.com') && (
@@ -1464,6 +1289,35 @@ export const PortfolioEditor = () => {
         </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Media Picker */}
+      <Dialog open={mediaPickerOpen} onOpenChange={setMediaPickerOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Pick from Repo (public/media)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input placeholder="Search by name or folder..." value={mediaQuery} onChange={(e) => setMediaQuery(e.target.value)} />
+            <div className="max-h-[60vh] overflow-auto border rounded-md">
+              {filteredMedia.length === 0 ? (
+                <div className="p-4 text-sm text-muted-foreground">No files found.</div>
+              ) : (
+                <ul className="divide-y">
+                  {filteredMedia.map((p) => (
+                    <li key={p} className="p-2 flex items-center justify-between hover:bg-muted/50">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <img src={p} alt={p} className="h-10 w-14 object-cover rounded border" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                        <div className="text-xs truncate">{p}</div>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => applyPickedMedia(p)}>Use</Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

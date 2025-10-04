@@ -9,7 +9,12 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "images:webp": "node scripts/convert-to-webp.mjs"
+    "images:webp": "node scripts/convert-to-webp.mjs",
+    "storage:export": "node scripts/export-storage.mjs",
+    "content:rewrite-urls": "node scripts/rewrite-content-urls.mjs",
+    "env:write-local": "node scripts/setup-env.mjs",
+    "media:manifest": "node scripts/generate-media-manifest.mjs",
+    "build": "vite build && node scripts/generate-media-manifest.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

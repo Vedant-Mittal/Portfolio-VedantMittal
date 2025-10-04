@@ -809,3 +809,62 @@ Private project - All rights reserved.
 ---
 
 **Built with ❤️ using React, TypeScript, Vite, and Supabase**
+
+---
+
+## 📦 Static Media Migration (Supabase Storage ➜ Git/Vercel)
+
+To reduce Supabase egress, you can serve images from this repo via Vercel's CDN. This project includes scripts to export files from Supabase Storage into `public/media` and update database content to use site-relative paths.
+
+### 1) Prerequisites
+- Environment variables (locally):
+  - `SUPABASE_URL` (or `VITE_SUPABASE_URL`)
+  - `SUPABASE_SERVICE_ROLE_KEY` (preferred) or `SUPABASE_ANON_KEY`
+  - Optional: `SUPABASE_BUCKET` (default `storage`)
+  - Optional: `EXPORT_FOLDERS` comma-separated (default `designs,ai-designs,websites`)
+
+Set them before running scripts, for example:
+
+```bash
+export SUPABASE_URL=YOUR_URL
+export SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE
+export SUPABASE_BUCKET=storage
+export EXPORT_FOLDERS=designs,ai-designs,websites
+```
+
+### 2) Export Storage → public/media
+
+```bash
+npm run storage:export
+```
+
+This downloads objects from the configured bucket and folders to `public/media/<folder>/<filename>`.
+
+Optional optimization (convert JPEG/PNG to WebP):
+
+```bash
+npm run images:webp
+```
+
+### 3) Rewrite content image URLs in the database
+
+```bash
+npm run content:rewrite-urls
+```
+
+- Rewrites `content_sections` items so any Supabase public URLs become site-relative paths like `/media/designs/foo.webp`.
+- Targets sections: `designs, websites, ai_designs`. Override with `SECTIONS` env var if needed.
+
+### 4) Commit and deploy
+
+```bash
+git add public/media
+git commit -m "migrate images to public/media"
+git push
+```
+
+Vercel will serve `public/` with CDN caching. If you replace an image, prefer renaming (hashes) to bust caches.
+
+### 5) Admin UI note
+
+The portfolio editor now expects site-relative paths (e.g., `/media/...`). Supabase uploads are disabled to avoid egress. Paste repo paths or use a Git-based workflow to add images to `public/media`.
