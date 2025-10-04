@@ -1205,6 +1205,34 @@ export const PortfolioEditor = () => {
                           <Button size="sm" variant="outline" className="glass-card" onClick={() => openMediaPicker({ kind: 'ai-add', designId: d.id })}>
                             <ImageIcon className="h-4 w-4 mr-1" /> Add from Repo
                           </Button>
+                          <Button size="sm" variant="outline" className="glass-card" onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = 'image/*';
+                            input.multiple = true;
+                            input.onchange = async (e: any) => {
+                              const files = Array.from(e.target.files || []);
+                              if (!files.length) return;
+                              try {
+                                const uploaded: string[] = [];
+                                for (const file of files) {
+                                  const path = await uploadToGit(file, 'ai-designs');
+                                  uploaded.push(path);
+                                  const temp = URL.createObjectURL(file);
+                                  setLocalPreviews((prev) => ({ ...prev, [path]: temp, [path.replace(/^\//, '')]: temp }));
+                                }
+                                if (uploaded.length) {
+                                  setAiDesigns(prev => prev.map(x => x.id === d.id ? { ...x, images: [...x.images, ...uploaded] } : x));
+                                  toast({ title: 'Uploaded', description: `${uploaded.length} image(s) added.` });
+                                }
+                              } catch (err: any) {
+                                toast({ title: 'Upload failed', description: err?.message || 'Unknown error', variant: 'destructive' });
+                              }
+                            };
+                            input.click();
+                          }}>
+                            <Upload className="h-4 w-4 mr-1" /> Upload
+                          </Button>
                           <Button size="icon" variant="outline" className="glass-card hover:bg-destructive/20" onClick={() => setAiDesigns(prev => prev.filter(x => x.id !== d.id))}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
