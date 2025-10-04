@@ -481,14 +481,14 @@ const Portfolio = () => {
         }}
         onMouseLeave={() => setHeroParallax({ x: 0, y: 0 })}
       >
-        {/* Preload image for better performance */}
-        <link rel="preload" as="image" href="/UniversalUpscaler_a97cb473-12d0-42bc-a06e-4faa40082f08.webp?v=1" />
+        {/* Preload image for better performance (use stable filename, no query param) */}
+        <link rel="preload" as="image" href="/portfolio-hero-bg.webp" />
         
         {/* Background Image */}
         <motion.div 
           className="absolute inset-0 bg-[position:30%_50%] md:bg-center bg-cover bg-no-repeat blur-[2px] md:blur-sm"
           style={{ 
-            backgroundImage: `url(/UniversalUpscaler_a97cb473-12d0-42bc-a06e-4faa40082f08.webp?v=1)`,
+            backgroundImage: `url(/portfolio-hero-bg.webp)`,
             y: bgTranslateY,
             scale: 1.06,
           }}
