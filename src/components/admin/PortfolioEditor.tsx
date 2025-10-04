@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 
 export type EditableGalleryItem = {
   id: string;
@@ -109,6 +110,7 @@ export const PortfolioEditor = () => {
   type MediaPickTarget =
     | { kind: 'design-image'; designId: string; imageIndex: number }
     | { kind: 'design-add'; designId: string }
+    | { kind: 'design-create' }
     | { kind: 'ai-image'; designId: string; imageIndex: number }
     | { kind: 'ai-add'; designId: string }
     | { kind: 'ai-create' }
@@ -146,6 +148,8 @@ export const PortfolioEditor = () => {
       updateImageInDesign(t.designId, t.imageIndex, path);
     } else if (t.kind === 'design-add') {
       addImageToDesign(t.designId, path);
+    } else if (t.kind === 'design-create') {
+      setDesigns(prev => [{ id: crypto.randomUUID(), type: 'single', title: 'Untitled', images: [path] }, ...prev]);
     } else if (t.kind === 'ai-image') {
       setAiDesigns(prev => prev.map(d => d.id === t.designId ? { ...d, images: d.images.map((img, idx) => idx === t.imageIndex ? path : img) } : d));
     } else if (t.kind === 'ai-add') {
@@ -399,14 +403,9 @@ export const PortfolioEditor = () => {
   // Bulk upload helpers
   const uploadManyImages = async (files: File[], folder: string) => {
     const imageFiles = files.filter(f => f.type.startsWith('image/'));
-    if (imageFiles.length === 0) {
-      throw new Error('No valid image files selected.');
-    }
-    const uploads = await Promise.all(imageFiles.map(async (file) => {
-      const url = await uploadImageToSupabase(file, folder);
-      return { file, url };
-    }));
-    return uploads;
+    if (imageFiles.length === 0) throw new Error('No valid image files selected.');
+    const urls = await uploadFilesToGit(imageFiles, folder);
+    return imageFiles.map((file, i) => ({ file, url: urls[i] }));
   };
 
   const handleBulkAddDesigns = async (fileList: FileList | null) => {
@@ -895,32 +894,12 @@ export const PortfolioEditor = () => {
             <TabsContent value="single">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    ref={designsBulkInputRef}
-                    onChange={(e) => handleBulkAddDesigns(e.target.files)}
-                    data-testid="bulk-input-designs"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="glass-card"
-                    onClick={() => designsBulkInputRef.current?.click()}
-                    disabled={bulkUploading.designs}
-                  >
-                    {bulkUploading.designs ? (
-                      <>
-                        <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="mr-2 h-4 w-4" /> Upload Images
-                      </>
-                    )}
+                  <Button type="button" variant="outline" className="glass-card" onClick={() => openMediaPicker({ kind: 'design-create' })}>
+                    <ImageIcon className="mr-2 h-4 w-4" /> Pick from Repo
+                  </Button>
+                  <input type="file" accept="image/*" multiple className="hidden" ref={designsBulkInputRef} onChange={(e) => handleBulkAddDesigns(e.target.files)} data-testid="bulk-input-designs" />
+                  <Button type="button" variant="outline" className="glass-card" onClick={() => designsBulkInputRef.current?.click()} disabled={bulkUploading.designs}>
+                    {bulkUploading.designs ? (<><div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin mr-2" /> Uploading...</>) : (<><Upload className="mr-2 h-4 w-4" /> Upload Images</>)}
                   </Button>
                 </div>
               </div>
@@ -1283,139 +1262,86 @@ export const PortfolioEditor = () => {
           {loading ? (
             <div className="text-muted-foreground">Loading...</div>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {websites.map((w) => (
-                <div key={w.id} className="p-4 glass-card rounded-md">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <Label>Title</Label>
-                      <Input value={w.title} onChange={(e) => updateWebsite(w.id, { title: e.target.value })} className="glass-card" placeholder="Website title" />
-                    </div>
-                    <div>
-                      <Label>URL</Label>
-                      <Input value={w.url} onChange={(e) => updateWebsite(w.id, { url: e.target.value })} className="glass-card" placeholder="https://..." />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label>Description</Label>
-                      <Textarea value={w.description} onChange={(e) => updateWebsite(w.id, { description: e.target.value })} className="glass-card min-h-[90px]" placeholder="Short description" />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label>Screenshot</Label>
-                      <div className="space-y-2">
-                        <div className="flex gap-2">
-                          <Input 
-                            value={w.screenshot} 
-                            onChange={(e) => updateWebsite(w.id, { screenshot: e.target.value })} 
-                            className="glass-card flex-1" 
-                            placeholder="https://imgur.com/... (recommended) or direct image URL" 
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="glass-card"
-                            onClick={() => openMediaPicker({ kind: 'website-screenshot', websiteId: w.id })}
-                          >
-                            <ImageIcon className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            className="glass-card"
-                            onClick={() => {
-                              const input = document.createElement('input');
-                              input.type = 'file';
-                              input.accept = 'image/*';
-                              input.multiple = false;
-                              input.onchange = async (e: any) => {
-                                const file = (e.target.files || [])[0];
-                                if (!file) return;
-                                try {
-                                  const path = await uploadToGit(file, 'websites');
-                                  const temp = URL.createObjectURL(file);
-                                  setLocalPreviews((prev) => ({ ...prev, [path]: temp, [path.replace(/^\//, '')]: temp }));
-                                  updateWebsite(w.id, { screenshot: path });
-                                  toast({ title: 'Screenshot uploaded' });
-                                } catch (err: any) {
-                                  toast({ title: 'Upload failed', description: err?.message || 'Unknown error', variant: 'destructive' });
-                                }
-                              };
-                              input.click();
-                            }}
-                          >
-                            <Upload className="h-4 w-4" />
+            <div className="grid grid-cols-1 gap-3">
+              <Accordion type="multiple" className="w-full">
+                {websites.map((w) => (
+                  <AccordionItem key={w.id} value={w.id} className="border rounded-md glass-card">
+                    <AccordionTrigger className="px-4">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-8 w-12 overflow-hidden rounded border bg-muted">
+                            <SmartPreview src={normalizeSitePath(w.screenshot || '/placeholder.svg')} alt={w.title || ''} className="h-full w-full object-cover" />
+                          </div>
+                          <div className="truncate text-sm font-medium">{w.title || 'Untitled Website'}</div>
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate max-w-[40%]">{w.url || 'No URL'}</div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <Label>Title</Label>
+                          <Input value={w.title} onChange={(e) => updateWebsite(w.id, { title: e.target.value })} className="glass-card" placeholder="Website title" />
+                        </div>
+                        <div>
+                          <Label>URL</Label>
+                          <Input value={w.url} onChange={(e) => updateWebsite(w.id, { url: e.target.value })} className="glass-card" placeholder="https://..." />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label>Description</Label>
+                          <Textarea value={w.description} onChange={(e) => updateWebsite(w.id, { description: e.target.value })} className="glass-card min-h-[90px]" placeholder="Short description" />
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label>Screenshot</Label>
+                          <div className="space-y-2">
+                            <div className="flex gap-2">
+                              <Input 
+                                value={w.screenshot} 
+                                onChange={(e) => updateWebsite(w.id, { screenshot: e.target.value })} 
+                                className="glass-card flex-1" 
+                                placeholder="/media/websites/your-image.webp or URL" 
+                              />
+                              <Button type="button" variant="outline" size="icon" className="glass-card" onClick={() => openMediaPicker({ kind: 'website-screenshot', websiteId: w.id })}>
+                                <ImageIcon className="h-4 w-4" />
+                              </Button>
+                              <Button type="button" variant="outline" size="icon" className="glass-card" onClick={() => { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.multiple = false; input.onchange = async (e: any) => { const file = (e.target.files || [])[0]; if (!file) return; try { const path = await uploadToGit(file, 'websites'); const temp = URL.createObjectURL(file); setLocalPreviews((prev) => ({ ...prev, [path]: temp, [path.replace(/^\//, '')]: temp })); updateWebsite(w.id, { screenshot: path }); toast({ title: 'Screenshot uploaded' }); } catch (err: any) { toast({ title: 'Upload failed', description: err?.message || 'Unknown error', variant: 'destructive' }); } }; input.click(); }}>
+                                <Upload className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            {w.screenshot && (
+                              <div className="w-full h-40 border rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                                <SmartPreview src={normalizeSitePath(w.screenshot.includes('drive.google.com') ? w.screenshot.replace('/file/d/', '/uc?export=view&id=').replace('/view?usp=sharing', '') : w.screenshot)} alt={w.title || 'Website screenshot'} className="max-w-full max-h-full object-contain" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="md:col-span-2">
+                          <Label>Tech Stack</Label>
+                          <div className="flex gap-2 mb-2">
+                            <Input placeholder="Add a technology (Enter)" className="glass-card flex-1" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const value = (e.target as HTMLInputElement).value; addStackTag(w.id, value); (e.target as HTMLInputElement).value = ''; } }} />
+                            <Button type="button" variant="outline" className="glass-card" onClick={(e) => { const input = (e.currentTarget.previousSibling as HTMLInputElement); if (input && input.value) { addStackTag(w.id, input.value); input.value = ''; } }}>Add</Button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {(w.stack || []).map((t) => (
+                              <Badge key={t} variant="secondary" className="cursor-pointer" onClick={() => removeStackTag(w.id, t)}>
+                                {t} ×
+                              </Badge>
+                            ))}
+                            {(!w.stack || w.stack.length === 0) && (
+                              <span className="text-sm text-muted-foreground">No stack tags yet.</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="md:col-span-2 flex justify-end">
+                          <Button variant="outline" className="glass-card hover:bg-destructive/20" onClick={() => removeWebsite(w.id)}>
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-                        {w.screenshot && w.screenshot.includes('drive.google.com') && (
-                          <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-sm">
-                            <span className="text-yellow-700 dark:text-yellow-300">
-                              ⚠️ Google Drive links may not display reliably. Consider using Imgur, GitHub, or another direct image hosting service.
-                            </span>
-                          </div>
-                        )}
-                        {/* Screenshot Preview */}
-                        {w.screenshot && (
-                          <div className="w-full h-40 border rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                            <SmartPreview src={normalizeSitePath(w.screenshot.includes('drive.google.com') ? w.screenshot.replace('/file/d/', '/uc?export=view&id=').replace('/view?usp=sharing', '') : w.screenshot)} alt={w.title || 'Website screenshot'} className="max-w-full max-h-full object-contain" />
-                          </div>
-                        )}
                       </div>
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label>Tech Stack</Label>
-                      <div className="flex gap-2 mb-2">
-                        <Input
-                          placeholder="Add a technology (Enter)"
-                          className="glass-card flex-1"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              const value = (e.target as HTMLInputElement).value;
-                              addStackTag(w.id, value);
-                              (e.target as HTMLInputElement).value = '';
-                            }
-                          }}
-                        />
-                        <Button type="button" variant="outline" className="glass-card" onClick={(e) => {
-                          const input = (e.currentTarget.previousSibling as HTMLInputElement);
-                          if (input && input.value) {
-                            addStackTag(w.id, input.value);
-                            input.value = '';
-                          }
-                        }}>Add</Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {(w.stack || []).map((t) => (
-                          <Badge key={t} variant="secondary" className="cursor-pointer" onClick={() => removeStackTag(w.id, t)}>
-                            {t} ×
-                          </Badge>
-                        ))}
-                        {(!w.stack || w.stack.length === 0) && (
-                          <span className="text-sm text-muted-foreground">No stack tags yet.</span>
-                        )}
-                      </div>
-                    </div>
-                    {/* Website screenshot preview */}
-                    {w.screenshot && (
-                      <div className="md:col-span-2">
-                        <Label>Screenshot Preview</Label>
-                        <div className="mt-2 w-full h-48 border rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                          <SmartPreview src={normalizeSitePath(w.screenshot)} alt={w.title || 'Website screenshot preview'} className="max-w-full max-h-full object-contain" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex justify-end mt-3">
-                    <Button variant="outline" className="glass-card hover:bg-destructive/20" onClick={() => removeWebsite(w.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-              {websites.length === 0 && (
-                <div className="text-sm text-muted-foreground">No websites yet. Click "Add Website" to start.</div>
-              )}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
             </div>
           )}
         </Card>
