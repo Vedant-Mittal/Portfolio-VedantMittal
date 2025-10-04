@@ -1,4 +1,4 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
+// Using untyped req/res to avoid requiring @vercel/node types during build
 
 // Upload an image to the GitHub repository under public/media/<folder>/<filename>
 // Expected JSON body: { name?: string, folder?: string, contentBase64: string }
@@ -16,7 +16,7 @@ function sanitizeName(name: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req: any, res: any) {
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
