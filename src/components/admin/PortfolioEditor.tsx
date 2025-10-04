@@ -238,10 +238,11 @@ export const PortfolioEditor = () => {
         className={className}
         onError={(e) => {
           const img = e.currentTarget as HTMLImageElement;
-          if (img.src !== normalized) {
-            img.src = normalized; // fall back from object URL to site path
-          } else if (img.src !== '/placeholder.svg') {
-            img.src = '/placeholder.svg';
+          // Stop infinite error loop by clearing handler after first error path switch
+          const switchTo = img.src !== normalized ? normalized : '/placeholder.svg';
+          if (img.src !== switchTo) {
+            img.onerror = null;
+            img.src = switchTo;
           }
         }}
       />
@@ -746,28 +747,10 @@ export const PortfolioEditor = () => {
                   {/* Image Preview */}
                   {imageUrl && (
                     <div className="w-full h-32 border rounded-lg overflow-hidden bg-muted flex items-center justify-center">
-                      <img 
-                        src={imageUrl.includes('drive.google.com') ? 
-                          imageUrl.replace('/file/d/', '/uc?export=view&id=').replace('/view?usp=sharing', '') :
-                          imageUrl
-                        }
-                        alt={design.title || `Image ${index + 1}`} 
+                      <SmartPreview
+                        src={normalizeSitePath(imageUrl.includes('drive.google.com') ? imageUrl.replace('/file/d/', '/uc?export=view&id=').replace('/view?usp=sharing', '') : imageUrl)}
+                        alt={design.title || `Image ${index + 1}`}
                         className="max-w-full max-h-full object-contain"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent && !parent.querySelector('.error-message')) {
-                            const errorDiv = document.createElement('div');
-                            errorDiv.className = 'error-message text-red-500 text-sm text-center p-4';
-                            errorDiv.textContent = '❌ Image failed to load. Check URL or try a different hosting service.';
-                            parent.appendChild(errorDiv);
-                          }
-                        }}
-                        onLoad={(e) => {
-                          const parent = e.currentTarget.parentElement;
-                          const errorMsg = parent?.querySelector('.error-message');
-                          if (errorMsg) errorMsg.remove();
-                        }}
                       />
                     </div>
                   )}
