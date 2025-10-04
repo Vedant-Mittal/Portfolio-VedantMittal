@@ -867,4 +867,10 @@ Vercel will serve `public/` with CDN caching. If you replace an image, prefer re
 
 ### 5) Admin UI note
 
-The portfolio editor now expects site-relative paths (e.g., `/media/...`). Supabase uploads are disabled to avoid egress. Paste repo paths or use a Git-based workflow to add images to `public/media`.
+The portfolio editor now supports two ways to add images:
+- Paste a site-relative path (e.g., `/media/...`) from the repo
+- Or upload directly via the admin; files are committed to GitHub (`public/media/...`) using the `/api/upload-media` endpoint
+
+Deployment env required for Git uploads:
+- `GITHUB_TOKEN` (repo write)
+- Optional overrides: `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_BRANCH`

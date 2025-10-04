@@ -498,7 +498,7 @@ export const PortfolioEditor = () => {
       }
     };
 
-    const handleFileUpload = async (file: File, imageIndex?: number) => {
+  const handleFileUpload = async (file: File, imageIndex?: number) => {
       if (imageIndex !== undefined) {
         setUploadingIndex(imageIndex);
       } else {
@@ -513,7 +513,21 @@ export const PortfolioEditor = () => {
           throw new Error('Only image files are allowed.');
         }
         
-        const uploadedUrl = await uploadImageToSupabase(file, 'designs');
+        // Upload to GitHub via /api/upload-media
+        const contentBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(',')[1] ? (reader.result as string) : String(reader.result));
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(file);
+        });
+        const resp = await fetch('/api/upload-media', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contentBase64, name: file.name, folder: 'designs' })
+        });
+        if (!resp.ok) throw new Error('Upload failed');
+        const json = await resp.json();
+        const uploadedUrl = json.sitePath as string;
         
         if (imageIndex !== undefined) {
           // Replace existing image
@@ -547,7 +561,20 @@ export const PortfolioEditor = () => {
         for (const file of files) {
           const isImage = file.type.startsWith('image/');
           if (!isImage) continue;
-          const uploadedUrl = await uploadImageToSupabase(file, 'designs');
+          const contentBase64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve((reader.result as string).split(',')[1] ? (reader.result as string) : String(reader.result));
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+          });
+          const resp = await fetch('/api/upload-media', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contentBase64, name: file.name, folder: 'designs' })
+          });
+          if (!resp.ok) throw new Error('Upload failed');
+          const json = await resp.json();
+          const uploadedUrl = json.sitePath as string;
           onAddImage(design.id, uploadedUrl);
         }
         toast({ title: 'Images uploaded', description: `${files.length} image(s) added to this design.` });
@@ -687,14 +714,21 @@ export const PortfolioEditor = () => {
                   </Button>
                 </div>
                 <div className="flex justify-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="glass-card"
-                    onClick={() => openMediaPicker({ kind: 'design-add', designId: design.id })}
-                  >
-                    <ImageIcon className="h-4 w-4 mr-2" /> Pick from Repo
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="glass-card"
+                      onClick={() => openMediaPicker({ kind: 'design-add', designId: design.id })}
+                    >
+                      <ImageIcon className="h-4 w-4 mr-2" /> Pick from Repo
+                    </Button>
+                    <input type="file" accept="image/*" multiple className="hidden" ref={newImageInputRef}
+                      onChange={(e) => { const files = Array.from(e.target.files || []); if (files.length) { handleMultipleNewFiles(files); } }} />
+                    <Button type="button" variant="outline" className="glass-card" onClick={() => newImageInputRef.current?.click()}>
+                      <Upload className="h-4 w-4 mr-2" /> Upload
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
@@ -912,9 +946,15 @@ export const PortfolioEditor = () => {
                           />
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline" className="glass-card" onClick={() => openMediaPicker({ kind: 'design-add', designId: d.id })}>
-                            <ImageIcon className="h-4 w-4 mr-1" /> Add from Repo
-                          </Button>
+                  <Button size="sm" variant="outline" className="glass-card" onClick={() => openMediaPicker({ kind: 'design-add', designId: d.id })}>
+                    <ImageIcon className="h-4 w-4 mr-1" /> Add from Repo
+                  </Button>
+                  <Button size="sm" variant="outline" className="glass-card" onClick={() => { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.multiple = true; input.onchange = async (e: any) => { const files = Array.from(e.target.files || []); if (!files.length) return; try { const uploaded: string[] = []; for (const file of files) { const contentBase64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve((reader.result as string)); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); }); const resp = await fetch('/api/upload-media', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentBase64, name: file.name, folder: 'designs' }) }); if (resp.ok) { const j = await resp.json(); uploaded.push(j.sitePath); } }
+                    if (uploaded.length) { setDesigns(prev => prev.map(x => x.id === d.id ? { ...x, images: [...x.images, ...uploaded] } : x)); toast({ title: 'Uploaded', description: `${uploaded.length} image(s) added.` }); }
+                  };
+                  input.click(); }}>
+                    <Upload className="h-4 w-4 mr-1" /> Upload
+                  </Button>
                           <Button size="icon" variant="outline" className="glass-card hover:bg-destructive/20" onClick={() => removeDesign(d.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -974,14 +1014,20 @@ export const PortfolioEditor = () => {
             <TabsContent value="single">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="glass-card"
-                    onClick={() => setAiDesigns(prev => [{ id: crypto.randomUUID(), type: 'single', title: 'Untitled', images: [] }, ...prev])}
-                  >
-                    <Plus className="mr-2 h-4 w-4" /> Add Empty Post
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="glass-card"
+                      onClick={() => setAiDesigns(prev => [{ id: crypto.randomUUID(), type: 'single', title: 'Untitled', images: [] }, ...prev])}
+                    >
+                      <Plus className="mr-2 h-4 w-4" /> Add Empty
+                    </Button>
+                    <Button type="button" variant="outline" className="glass-card" onClick={() => { const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.multiple = true; input.onchange = async (e: any) => { const files = Array.from(e.target.files || []); if (!files.length) return; const createdId = crypto.randomUUID(); let images: string[] = []; for (const file of files) { const contentBase64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve((reader.result as string)); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); }); const resp = await fetch('/api/upload-media', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contentBase64, name: file.name, folder: 'ai-designs' }) }); if (resp.ok) { const j = await resp.json(); images.push(j.sitePath); } }
+                    setAiDesigns(prev => [{ id: createdId, type: 'single', title: files[0]?.name?.replace(/\.[^.]+$/, '') || 'Untitled', images }, ...prev]); toast({ title: 'AI images uploaded', description: `${images.length} added.` }); }; input.click(); }}>
+                      <Upload className="h-4 w-4 mr-2" /> Upload
+                    </Button>
+                  </div>
                 </div>
               </div>
               {loading ? (
