@@ -1,23 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, Eye, Upload, ChevronLeft } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useCourses, Course } from '@/hooks/useCourses';
+import PortfolioEditor from '@/components/admin/PortfolioEditor';
 
 const AdminPage = () => {
   const { isAdmin, isInstructor, loading: authLoading, user, profile } = useAuth();
-  const { toast } = useToast();
-  const { courses, loading: coursesLoading, refetch } = useCourses();
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState('courses');
   const navigate = useNavigate();
 
   // Debug logging
@@ -39,7 +29,7 @@ const AdminPage = () => {
     }
   }, [authLoading, isInstructor, profile, navigate]);
 
-  if (authLoading || coursesLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -72,7 +62,7 @@ const AdminPage = () => {
     );
   }
 
-  // Course management UI removed from website per request; keep data and hooks intact
+  // This page now hosts only the Portfolio Editor UI
 
   const handleDeleteCourse = async (course: Course) => {
     const confirmDelete = window.confirm(
@@ -125,7 +115,7 @@ const AdminPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -136,57 +126,15 @@ const AdminPage = () => {
               Back to Home
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-primary">Admin Panel</h1>
-              <p className="text-muted-foreground">Manage courses and content</p>
+              <h1 className="text-3xl font-bold text-primary">Portfolio Editor</h1>
+              <p className="text-muted-foreground">Manage designs, AI designs and websites</p>
             </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button onClick={() => navigate('/admin/portfolio')} variant="outline" className="glass-card">
-              Edit Portfolio
-            </Button>
           </div>
         </div>
 
-        <Tabs value={'courses'} className="w-full">
-          <TabsList className="glass-card grid w-full max-w-xs grid-cols-1 p-1">
-            <TabsTrigger value="courses">Courses (view-only)</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="courses" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {courses.map((course) => (
-                <motion.div
-                  key={course.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="glass-card p-6 hover:glow-border transition-all duration-200"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <Badge variant={course.is_published ? "default" : "secondary"}>
-                      {course.is_published ? "Published" : "Draft"}
-                    </Badge>
-                  </div>
-                  
-                  <h3 className="font-semibold text-lg mb-2 line-clamp-2">{course.title}</h3>
-                  <p className="text-muted-foreground text-sm mb-4 line-clamp-3">
-                    {course.description}
-                  </p>
-                  
-                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                    <span>{course.level}</span>
-                    <span>{course.price}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => navigate('/admin/portfolio')} className="glass-card flex-1">
-                      Edit Portfolio
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+          <PortfolioEditor />
+        </motion.div>
       </div>
     </div>
   );
