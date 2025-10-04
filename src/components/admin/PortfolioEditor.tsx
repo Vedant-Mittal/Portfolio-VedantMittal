@@ -164,6 +164,40 @@ export const PortfolioEditor = () => {
     };
   };
 
+  // Image helpers: normalize in-site paths and Git upload
+  const normalizeSitePath = (url: string): string => {
+    if (!url) return url;
+    const u = url.trim();
+    if (/^https?:\/\//i.test(u)) return u;
+    if (u.startsWith('/')) return u;
+    if (u.startsWith('public/')) return `/${u.replace(/^public\//, '')}`;
+    if (u.startsWith('media/')) return `/${u}`;
+    return u;
+  };
+
+  const fileToDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+
+  const uploadToGit = async (file: File, folder: string): Promise<string> => {
+    const contentBase64 = await fileToDataUrl(file);
+    const resp = await fetch('/api/upload-media', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contentBase64, name: file.name, folder })
+    });
+    if (!resp.ok) {
+      const t = await resp.text();
+      throw new Error(t || 'Upload failed');
+    }
+    const json = await resp.json();
+    return json.sitePath as string;
+  };
+
   const load = async () => {
     setDbStatus('checking');
     setDbMessage('');
