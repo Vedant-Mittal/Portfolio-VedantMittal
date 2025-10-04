@@ -1318,6 +1318,34 @@ export const PortfolioEditor = () => {
                           >
                             <ImageIcon className="h-4 w-4" />
                           </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="glass-card"
+                            onClick={() => {
+                              const input = document.createElement('input');
+                              input.type = 'file';
+                              input.accept = 'image/*';
+                              input.multiple = false;
+                              input.onchange = async (e: any) => {
+                                const file = (e.target.files || [])[0];
+                                if (!file) return;
+                                try {
+                                  const path = await uploadToGit(file, 'websites');
+                                  const temp = URL.createObjectURL(file);
+                                  setLocalPreviews((prev) => ({ ...prev, [path]: temp, [path.replace(/^\//, '')]: temp }));
+                                  updateWebsite(w.id, { screenshot: path });
+                                  toast({ title: 'Screenshot uploaded' });
+                                } catch (err: any) {
+                                  toast({ title: 'Upload failed', description: err?.message || 'Unknown error', variant: 'destructive' });
+                                }
+                              };
+                              input.click();
+                            }}
+                          >
+                            <Upload className="h-4 w-4" />
+                          </Button>
                         </div>
                         {w.screenshot && w.screenshot.includes('drive.google.com') && (
                           <div className="p-2 bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded text-sm">
